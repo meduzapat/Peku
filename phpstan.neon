@@ -1,0 +1,7 @@
+parameters:
+	level: 8
+	paths:
+		- src
+	ignoreErrors:
+		# Allow generic array without type hints
+		- '#no value type specified in iterable type array#'

@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<ruleset name="Peku">
+	<description>Peku Framework Coding Standard</description>
+	
+	<file>src</file>
+	<file>tests</file>
+	
+	<arg name="colors"/>
+	<arg value="sp"/>
+	
+	<!-- Use PSR12 as base but override style -->
+	<rule ref="PSR12">
+		<!-- Allow tabs -->
+		<exclude name="Generic.WhiteSpace.DisallowTabIndent"/>
+		<!-- Allow braces on same line -->
+		<exclude name="PSR2.Classes.ClassDeclaration"/>
+		<exclude name="PSR12.Classes.OpeningBraceSpace"/>
+		<exclude name="Squiz.Functions.MultiLineFunctionDeclaration.BraceOnSameLine"/>
+		<exclude name="Squiz.WhiteSpace.ScopeClosingBrace"/>
+		<!-- Allow column alignment 
+
+		<exclude name="Squiz.Functions.FunctionDeclarationArgumentSpacing"/> -->
+		<exclude name="Squiz.ControlStructures.ControlSignature.SpaceAfterCloseBrace"/>
+		<exclude name="Squiz.ControlStructures.ControlSignature.NewlineAfterOpenBrace"/>
+		<exclude name="Generic.Functions.FunctionCallArgumentSpacing.TooMuchSpaceAfterComma"/>
+	</rule>
+	
+	<!-- Enforce tabs -->
+	<rule ref="Generic.WhiteSpace.DisallowSpaceIndent"/>
+	
+	<!-- Max line length -->
+	<rule ref="Generic.Files.LineLength">
+		<properties>
+			<property name="lineLimit" value="120"/>
+			<property name="absoluteLineLimit" value="0"/>
+		</properties>
+	</rule>
+</ruleset>
