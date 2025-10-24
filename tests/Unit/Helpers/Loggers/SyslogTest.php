@@ -35,6 +35,9 @@ class SyslogTest extends TestCase {
 	// Syslog Function Calls
 	// ========================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 */
 	public function testLogCallsSyslogFunctions(): void {
 		$openlog = $this->getFunctionMock('Peku\\Helpers\\Loggers', 'openlog');
 		$openlog->expects($this->once())->with('TestApp', LOG_PID, LOG_USER);
@@ -53,6 +56,7 @@ class SyslogTest extends TestCase {
 	// ========================================================================
 
 	/**
+	 * @runInSeparateProcess
 	 * @dataProvider logLevelProvider
 	 */
 	public function testLogLevelMapping(LogLevel $logLevel, int $expectedPriority): void {
