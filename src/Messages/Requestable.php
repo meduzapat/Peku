@@ -1,0 +1,39 @@
+<?php
+
+/**
+ * This file is part of the Peku Framework.
+ *
+ * @author    Patricio Rossi <meduzapat@netscape.net>
+ * @copyright Copyright © 2026 Patricio Rossi
+ * @license   MIT License - see LICENSE file for details
+ * @link      https://github.com/meduzapat/peku
+ */
+
+declare(strict_types=1);
+
+namespace Peku\Messages;
+
+use Peku\Abstractions\Retrievable;
+
+/**
+ * Request interface for all request implementations
+ *
+ * Defines public contract for request handling across different contexts
+ * (HTTP, CLI, etc.)
+ */
+interface Requestable extends Retrievable {
+
+	/**
+	 * Get request type
+	 *
+	 * @return RequestType Request type enum (GET, POST, CLI, etc.)
+	 */
+	public function getType(): RequestType;
+
+	/**
+	 * Determine desired response format
+	 *
+	 * @return string Format identifier (html, json, xml, txt, etc.)
+	 */
+	public function wants(): string;
+}

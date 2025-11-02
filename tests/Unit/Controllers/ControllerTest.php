@@ -4,7 +4,7 @@
  * This file is part of the Peku Framework.
  *
  * @author    Patricio Rossi <meduzapat@netscape.net>
- * @copyright Copyright (c) 2025 Patricio Rossi
+ * @copyright Copyright © 2026 Patricio Rossi
  * @license   MIT License - see LICENSE file for details
  * @link      https://github.com/meduzapat/peku
  */
