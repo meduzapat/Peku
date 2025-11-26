@@ -22,11 +22,11 @@ namespace Peku\Helpers\Http\Extractors;
 interface Extractable {
 
 	/**
-	 * Get all query parameters (GET)
+	 * Get query parameters (GET for HTTP, arguments for CLI)
 	 *
 	 * @return array Query string parameters
 	 */
-	public function getAll(): array;
+	public function getQuery(): array;
 
 	/**
 	 * Get all body parameters (POST/PUT/PATCH)
@@ -38,7 +38,7 @@ interface Extractable {
 	/**
 	 * Get all uploaded files
 	 *
-	 * @return array<string, \Peku\Helpers\Files\FileInterface> Uploaded files indexed by field name
+	 * @return array<string, \Peku\Helpers\Http\UploadedFile|array<\Peku\Helpers\Http\UploadedFile>> Files
 	 */
 	public function getFiles(): array;
 }

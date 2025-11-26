@@ -38,7 +38,7 @@ abstract class Extractor implements Extractable {
 
 	/**
 	 * Secured uploaded files
-	 * @var array<string, FileInterface>
+	 * @var array<string, \Peku\Helpers\Http\UploadedFile|array<\Peku\Helpers\Http\UploadedFile>>
 	 */
 	protected array $files = [];
 
@@ -50,24 +50,24 @@ abstract class Extractor implements Extractable {
 	}
 
 	/**
-	 * @see Extractable::getAll()
+	 * @see Extractable::getQuery()
 	 */
-	public function getAll(): array {
-		return $this->securedGet;
+	public function getQuery(): array {
+		return $this->parameters;
 	}
 
 	/**
 	 * @see Extractable::getData()
 	 */
 	public function getData(): array {
-		return $this->securedPost;
+		return $this->values;
 	}
 
 	/**
 	 * @see Extractable::getFiles()
 	 */
 	public function getFiles(): array {
-		return $this->securedFiles;
+		return $this->files;
 	}
 
 	/**
@@ -75,7 +75,7 @@ abstract class Extractor implements Extractable {
 	 *
 	 * Called once during construction. Implementations should:
 	 * 1. Extract data from raw sources ($_GET, $_POST, php://input, etc.)
-	 * 2. Store in secured properties ($securedGet, $securedPost, $securedFiles)
+	 * 2. Store in secured properties ($parameters, $values, $files)
 	 * 3. Optionally clear raw sources to prevent accidental access
 	 */
 	abstract protected function initialize(): void;

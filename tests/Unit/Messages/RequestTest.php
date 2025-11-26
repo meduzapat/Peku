@@ -14,8 +14,7 @@ declare(strict_types=1);
 namespace Peku\Tests\Unit\Messages;
 
 use PHPUnit\Framework\TestCase;
-use Peku\Messages\Request;
-use Peku\Messages\RequestType;
+use Peku\Messages\{Request, RequestType};
 
 /**
  * Concrete test request implementations

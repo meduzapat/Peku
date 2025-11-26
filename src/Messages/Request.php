@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Peku\Messages;
 
 use Peku\Abstractions\RetrievableHelpers;
+use Peku\Helpers\Http\Extractors\Extractable;
 
 /**
  * Abstract base request providing unified interface for all request types
@@ -21,7 +22,7 @@ use Peku\Abstractions\RetrievableHelpers;
  * Defines common contract for HTTP, CLI, and other request contexts.
  * Implementations handle context-specific data sources (superglobals, argv, etc.)
  */
-abstract class Request {
+abstract class Request implements Requestable {
 
 	use RetrievableHelpers;
 
@@ -34,6 +35,12 @@ abstract class Request {
 	 * @var array Extracted and sanitized request data
 	 */
 	protected array $values = [];
+
+	/**
+	 * Default extractor (can be overridden globally)
+	 * @var Extractable
+	 */
+	private static ?Extractable $extractor = null;
 
 	/**
 	 * Initialize request and load data from source
@@ -54,6 +61,13 @@ abstract class Request {
 	 * - $this->values - Extracted request data
 	 */
 	abstract protected function extract(): void;
+
+	/**
+	 * Create extractor: use custom if set, otherwise child's default
+	 *
+	 * @return Extractable Extractor instance
+	 */
+	abstract protected function createExtractor(): Extractable;
 
 	/**
 	 * Get request type
@@ -105,5 +119,15 @@ abstract class Request {
 	 */
 	public function all(): array {
 		return $this->values;
+	}
+
+	/**
+	 * Set default extractor
+	 *
+	 * @param class-string<Extractable> $extractorClass Extractor class name
+	 * @example HttpRequest::setDefaultExtractor(Advanced::class);
+	 */
+	public static function setDefaultExtractor(Extractable $extractor): void {
+		self::$extractorClass = $extractor;
 	}
 }
