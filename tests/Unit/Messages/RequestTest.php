@@ -49,6 +49,15 @@ class TestRequest extends Request {
 	public function getValues(): array {
 		return $this->values;
 	}
+
+	protected function createExtractor(): \Peku\Helpers\Http\Extractors\Extractable {
+		// Return a mock or simple implementation
+		return new class extends \Peku\Helpers\Http\Extractors\Extractor {
+			protected function initialize(): void {
+				// No-op for testing
+			}
+		};
+	}
 }
 
 class EmptyRequest extends Request {
@@ -59,6 +68,14 @@ class EmptyRequest extends Request {
 
 	public function wants(): string {
 		return 'txt';
+	}
+
+	protected function createExtractor(): \Peku\Helpers\Http\Extractors\Extractable {
+		return new class extends \Peku\Helpers\Http\Extractors\Extractor {
+			protected function initialize(): void {
+				// No-op for testing
+			}
+		};
 	}
 }
 

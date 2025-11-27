@@ -88,7 +88,7 @@ class Normal extends Extractor {
 		}
 
 		// Security check - ensure file was uploaded via HTTP POST
-		if (!\is_uploaded_file($fileData['tmp_name'])) {
+		if (!is_uploaded_file($fileData['tmp_name'])) {
 			return new UploadedFile(null, UPLOAD_ERR_CANT_WRITE, $clientFilename, $clientPath);
 		}
 

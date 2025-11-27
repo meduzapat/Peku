@@ -40,7 +40,7 @@ abstract class Request implements Requestable {
 	 * Default extractor (can be overridden globally)
 	 * @var Extractable
 	 */
-	private static ?Extractable $extractor = null;
+	protected static ?Extractable $extractor = null;
 
 	/**
 	 * Initialize request and load data from source
@@ -128,6 +128,6 @@ abstract class Request implements Requestable {
 	 * @example HttpRequest::setDefaultExtractor(Advanced::class);
 	 */
 	public static function setDefaultExtractor(Extractable $extractor): void {
-		self::$extractorClass = $extractor;
+		self::$extractor = $extractor;
 	}
 }
