@@ -24,23 +24,16 @@ namespace Peku\Helpers\Http\Extractors;
  */
 abstract class Extractor implements Extractable {
 
-	/**
-	 * Secured query parameters (GET)
-	 * @var array
-	 */
-	protected array $parameters = [];
 
-	/**
-	 * Secured body parameters (POST/PUT/PATCH)
-	 * @var array
-	 */
-	protected array $values = [];
-
-	/**
-	 * Secured uploaded files
-	 * @var array<string, \Peku\Helpers\Http\UploadedFile|array<\Peku\Helpers\Http\UploadedFile>>
-	 */
-	protected array $files = [];
+	protected array
+		$parameters = [], // GET
+		$values     = [], // POST/PUT/PATCH
+		$server     = [], // $_SERVER
+		/**
+		 * Secured uploaded files
+		 * @var array<string, \Peku\Helpers\Http\UploadedFile|array<\Peku\Helpers\Http\UploadedFile>>
+		 */
+		$files = [];
 
 	/**
 	 * Initialize extractor and secure request data
@@ -68,6 +61,13 @@ abstract class Extractor implements Extractable {
 	 */
 	public function getFiles(): array {
 		return $this->files;
+	}
+
+	/**
+	 * @see Extractable::getServer()
+	 */
+	public function getServer(): array {
+		return $this->server;
 	}
 
 	/**

@@ -16,29 +16,29 @@ namespace Peku\Helpers\Http\Extractors;
 /**
  * Interface for request data extraction
  *
- * Extractors are responsible for retrieving user-submitted data from HTTP requests.
- * They only provide bulk retrieval methods - consumers handle caching and key lookups.
+ * Extracts and secures all superglobals from raw sources.
  */
 interface Extractable {
 
 	/**
-	 * Get query parameters (GET for HTTP, arguments for CLI)
-	 *
-	 * @return array Query string parameters
+	 * Get query parameters (GET)
 	 */
 	public function getQuery(): array;
 
 	/**
-	 * Get all body parameters (POST/PUT/PATCH)
-	 *
-	 * @return array Request body parameters
+	 * Get body parameters (POST/PUT/PATCH)
 	 */
 	public function getData(): array;
 
 	/**
-	 * Get all uploaded files
+	 * Get uploaded files
 	 *
-	 * @return array<string, \Peku\Helpers\Http\UploadedFile|array<\Peku\Helpers\Http\UploadedFile>> Files
+	 * @return array<string, \Peku\Helpers\Http\UploadedFile|array<\Peku\Helpers\Http\UploadedFile>>
 	 */
 	public function getFiles(): array;
+
+	/**
+	 * Get server variables
+	 */
+	public function getServer(): array;
 }

@@ -19,31 +19,24 @@ use Peku\Helpers\Utils\Data\Values;
 
 /**
  * HTTP request implementation with metadata and context-aware data access
- *
- * Provides HTTP-specific functionality:
- * - Protocol detection (HTTP/HTTPS with proxy awareness)
- * - Header normalization and access
- * - Remote IP detection (proxy-aware with validation)
- * - Separated GET/POST data access
- * - File upload handling
- * - URL/URI distinction per RFC standard
  */
 class HttpRequest extends Request {
 
-	private array
-	$query   = [], // GET parameters
-	$data    = [], // POST/PUT/PATCH parameters
-	$files   = []; // Uploaded files
+	protected array
+		$server  = [],
+		$query   = [],
+		$data    = [],
+		$files   = [],
+		$headers = [];
 
-	private string
-	$protocol = '',
-	$host     = '',
-	$url      = '',
-	$uri      = '',
-	$referer  = '',
-	$remoteIp = '';
-
-	private array $headers = [];
+	protected string
+		$scheme          = '',
+		$protocolVersion = '',
+		$host            = '',
+		$url             = '',
+		$uri             = '',
+		$referer         = '',
+		$remoteIp        = '';
 
 	/**
 	 * Extract HTTP request data and metadata
@@ -62,7 +55,7 @@ class HttpRequest extends Request {
 
 		// 3. Merge for unified access via get()
 		//    POST overrides GET if same key exists
-		$this->values = array_merge($this->query, $this->data);
+		$this->values = [...$this->query, ...$this->data];
 
 		// 4. Extract HTTP metadata
 		$this->protocol = $this->detectProtocol();
@@ -78,17 +71,104 @@ class HttpRequest extends Request {
 	}
 
 	/**
-	 * @see Request::wants()
+	 * Get accepted MIME types sorted by preference
+	 *
+	 * Parses Accept header with RFC 9110 compliance:
+	 * - Quality values (q parameter)
+	 * - Specificity rules (exact > type wildcard > full wildcard)
+	 * - Rejection handling (q=0)
+	 *
+	 * @return array Sorted array of MIME types (best first)
+	 *
+	 * @example
+	 * // Accept: text/html;q=0.9, application/json
+	 * $request->accepts(); // ['application/json', 'text/html']
+	 */
+	public function accepts(): array {
+		$acceptHeader = $this->getHeader('Accept') ?? '';
+
+		if ($acceptHeader === '') {
+			return ['text/html'];
+		}
+
+		$parsed   = [];
+		$segments = explode(',', $acceptHeader);
+
+		foreach ($segments as $segment) {
+			$segment = trim($segment);
+			if ($segment === '') {
+				continue;
+			}
+
+			// Parse: type/subtype; param1=value1; q=0.8; param2=value2
+			$parts = explode(';', $segment);
+			$mime  = trim($parts[0]);
+
+			// Extract quality (q parameter) - default 1.0
+			$quality = 1.0;
+			foreach (array_slice($parts, 1) as $param) {
+				if (preg_match('/^\s*q\s*=\s*([\d.]+)\s*$/i', $param, $matches)) {
+					$quality = (float)$matches[1];
+					// Clamp to valid range per RFC 9110 (0.0 - 1.0)
+					$quality = max(0.0, min(1.0, $quality));
+					break;
+				}
+			}
+
+			// Skip if quality is 0 (explicitly rejected)
+			if ($quality === 0.0) {
+				continue;
+			}
+
+			// Calculate specificity for precedence (higher = more specific)
+			// Per RFC 9110: exact type > type wildcard > full wildcard
+			$specificity = match (true) {
+				$mime === '*/*'              => 1,  // Full wildcard (lowest)
+				str_ends_with($mime, '/*')   => 2,  // Type wildcard (medium)
+				default                      => 3,  // Exact type/subtype (highest)
+			};
+
+			$parsed[] = [
+				'mime'        => $mime,
+				'quality'     => $quality,
+				'specificity' => $specificity,
+			];
+		}
+
+		// Empty or all rejected - default to text/html
+		if (empty($parsed)) {
+			return ['text/html'];
+		}
+
+		// Sort by: 1) quality DESC, 2) specificity DESC
+		usort($parsed, function($a, $b) {
+			// Compare quality first (higher is better)
+			$qualityDiff = $b['quality'] <=> $a['quality'];
+			if ($qualityDiff !== 0) {
+				return $qualityDiff;
+			}
+
+			// If equal quality, compare specificity (higher is better)
+			return $b['specificity'] <=> $a['specificity'];
+		});
+
+		// Extract sorted MIME types
+		return array_column($parsed, 'mime');
+	}
+
+	/**
+	 * Get most preferred MIME type
+	 *
+	 * Returns the first (highest priority) accepted MIME type,
+	 * or 'text/html' if none specified.
+	 *
+	 * @return string Preferred MIME type
+	 *
+	 * @example $request->wants(); // 'application/json'
 	 */
 	public function wants(): string {
-		$accept = $this->getHeader('Accept') ?? 'text/html';
-
-		return match (true) {
-			str_contains($accept, 'application/json') => 'json',
-			str_contains($accept, 'application/xml')  => 'xml',
-			str_contains($accept, 'text/plain')       => 'txt',
-			default                                   => 'html',
-		};
+		$accepted = $this->accepts();
+		return $accepted[0] ?? 'text/html';
 	}
 
 	// ========================================================================
@@ -196,6 +276,15 @@ class HttpRequest extends Request {
 	}
 
 	/**
+	 * Get protocol version
+	 */
+	public function getProtocolVersion(): string {
+		$serverProtocol = $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.1';
+		// Extract version from "HTTP/1.1"
+		return substr($serverProtocol, 5) ?: '1.1';
+	}
+
+	/**
 	 * Get host (domain + port if non-standard)
 	 */
 	public function getHost(): string {
@@ -262,12 +351,11 @@ class HttpRequest extends Request {
 	 * Get HTTP header by name (case-insensitive)
 	 *
 	 * @param string $name Header name (e.g., 'Content-Type', 'accept')
-	 * @return string|null Header value or null if not found
+	 * @return string Header value or '' if not found
 	 */
-	public function getHeader(string $name): ?string {
-		// Normalize: Content-Type, content-type, CONTENT-TYPE -> Content-Type
-		$normalized = str_replace(' ', '-', ucwords(str_replace('-', ' ', strtolower($name))));
-		return $this->headers[$normalized] ?? null;
+	public function getHeader(string $name, string $default = ''): string {
+		$normalized = ucwords(strtolower($name), '-');
+		return $this->headers[$normalized] ?? $default;
 	}
 
 	/**
