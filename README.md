@@ -14,10 +14,13 @@ Peku embraces OOP principles (polymorphism, abstraction, inheritance, encapsulat
 
 ## Requirements
 
-- PHP 8.0+
+- PHP 8.3+
 - Composer
 
-PHP depencencies
+PHP dependencies
+
+Debian base systems:
+
 ```bash
 sudo apt install -y php8.3-cli php8.3-common php8.3-curl php8.3-mbstring php8.3-xml php8.3-xdebug
 ```
@@ -33,51 +36,22 @@ composer require peku/framework
 TBD
 
 ## Project Structure
-
-## Project Structure
 ```
 peku/framework/
 ├── src/
 │   ├── Controllers/
-│   │   └── Controller.php              (abstract base controller)
 │   └── Helpers/
 │       ├── Loggers/
-│       │   ├── Loggeable.php           (interface)
-│       │   ├── LogLevel.php            (enum - debug, info, warning, error, critical)
-│       │   ├── Logger.php              (abstract base with formatting utilities)
-│       │   ├── Noop.php                (no-op implementation)
-│       │   ├── File.php                (file logger with timestamps)
-│       │   └── Syslog.php              (system syslog integration)
 │       ├── Configs/
-│       │   ├── Configurable.php        (interface)
-│       │   ├── Config.php              (abstract base with section/key access)
-│       │   ├── ConfigException.php     (configuration exceptions)
-│       │   ├── Noop.php                (no-op implementation)
-│       │   └── Php.php                 (PHP array file loader)
 │       └── Files/
-│           └── FileException.php       (file operation exceptions)
 ├── tests/
 │   ├── Unit/                           (mirrors src/ structure)
-│   │   └── Helpers/
-│   │       ├── Loggers/
-│   │       │   ├── LoggerTest.php
-│   │       │   ├── NoopTest.php
-│   │       │   ├── FileTest.php
-│   │       │   └── SyslogTest.php
-│   │       ├── Configs/
-│   │       │   ├── ConfigTest.php
-│   │       │   ├── NoopTest.php
-│   │       │   └── PhpTest.php
-│   │       └── Files/
-│   │           └── FileExceptionTest.php
 │   ├── Integration/                    (cross-component tests - planned)
 │   ├── Fixtures/
 │   │   └── TestCase.php                (base test class with helpers)
 │   ├── bootstrap.php                   (PHPUnit bootstrap)
 │   └── README.md                       (test organization guide)
-├── composer.json
-├── LICENSE
-└── README.md
+└── README.md                           (this read me)
 ```
 
 ## Development

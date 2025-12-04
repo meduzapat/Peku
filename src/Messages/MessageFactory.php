@@ -100,11 +100,8 @@ class MessageFactory {
 	 * Custom mappings take precedence over default mappings.
 	 * Use this to provide specialized Response classes for specific MIME types.
 	 *
-	 * @param string                      $mime  MIME type (e.g., 'application/json')
+	 * @param string $mime  MIME type (e.g., 'application/json')
 	 * @param class-string<Responseable> $class Response class name
-	 *
-	 * @example MessageFactory::registerMapping('text/csv', CsvResponse::class);
-	 * @example MessageFactory::registerMapping('application/json', CustomJsonResponse::class);
 	 */
 	public static function registerMapping(string $mime, string $class): void {
 		self::$customMappings[$mime] = $class;
@@ -117,8 +114,6 @@ class MessageFactory {
 	 * Subsequent requests will fall back to default mapping.
 	 *
 	 * @param string $mime MIME type to unregister
-	 *
-	 * @example MessageFactory::unregisterMapping('text/csv');
 	 */
 	public static function unregisterMapping(string $mime): void {
 		unset(self::$customMappings[$mime]);
@@ -128,9 +123,6 @@ class MessageFactory {
 	 * Clear all custom Response class mappings
 	 *
 	 * Removes all custom mappings, reverting to default mappings only.
-	 * Useful for testing or resetting to framework defaults.
-	 *
-	 * @example MessageFactory::clearMappings();
 	 */
 	public static function clearMappings(): void {
 		self::$customMappings = [];

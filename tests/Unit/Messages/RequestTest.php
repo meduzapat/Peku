@@ -15,6 +15,119 @@ namespace Peku\Tests\Unit\Messages;
 
 use PHPUnit\Framework\TestCase;
 use Peku\Messages\{Request, RequestType};
+use Peku\Abstractions\MixedCollection;
+
+/**
+ * Unit tests for Request abstract class
+ *
+ * Tests only Request-specific behavior:
+ * - Constructor/extract lifecycle
+ * - Type detection
+ * - values() accessor returns proper MixedCollection
+ * - wants() format detection
+ * - Instance independence
+ *
+ * Does NOT test MixedCollection functionality (get, has, all, etc.)
+ * - That's covered in MixedCollectionTest
+ */
+class RequestTest extends TestCase {
+
+	private TestRequest $request;
+
+	protected function setUp(): void {
+		$this->request = new TestRequest();
+	}
+
+	// ========================================================================
+	// Constructor & Extract Tests
+	// ========================================================================
+
+	/**
+	 * Verify extract() is called exactly once during construction
+	 */
+	public function testConstructorCallsExtractOnce(): void {
+		$request = new TestRequest();
+		$this->assertSame(1, $request->extractCalled);
+	}
+
+	public function testExtractPopulatesType(): void {
+		$this->assertSame(RequestType::Get, $this->request->getType());
+	}
+
+	public function testExtractPopulatesMixedCollection(): void {
+		// Verify values() returns MixedCollection
+		$this->assertInstanceOf(MixedCollection::class, $this->request->values());
+		$this->assertSame(TestRequest::TEST_DATA, $this->request->values()->all());
+	}
+
+	// ========================================================================
+	// wants() Tests
+	// ========================================================================
+
+	public function testWantsReturnsFormat(): void {
+		$this->assertSame('html', $this->request->wants());
+	}
+
+	public function testWantsCanReturnDifferentFormats(): void {
+		$this->request->wantsFormat = 'json';
+		$this->assertSame('json', $this->request->wants());
+	}
+
+	// ========================================================================
+	// values() Accessor Tests
+	// ========================================================================
+
+	/**
+	 * Verify values() returns MixedCollection with proper data
+	 */
+	public function testValuesReturnsMixedCollection(): void {
+		$values = $this->request->values();
+
+		$this->assertInstanceOf(MixedCollection::class, $values);
+
+		// Smoke test - full MixedCollection testing is in MixedCollectionTest
+		$this->assertSame('John', $values->get('name'));
+		$this->assertSame(25, $values->get('age', 0));
+		$this->assertTrue($values->has('name'));
+		$this->assertFalse($values->has('nonexistent'));
+	}
+
+	// ========================================================================
+	// Instance Independence Tests
+	// ========================================================================
+
+	/**
+	 * Verify multiple Request instances operate independently
+	 */
+	public function testMultipleRequestsAreIndependent(): void {
+		$request1 = new TestRequest();
+		$request2 = new EmptyRequest();
+
+		$this->assertNotEmpty($request1->values()->all());
+		$this->assertEmpty($request2->values()->all());
+		$this->assertSame(RequestType::Get, $request1->getType());
+		$this->assertSame(RequestType::Cli, $request2->getType());
+	}
+}
+
+class EmptyRequest extends Request {
+	protected function extract(): void {
+		$this->type   = RequestType::Cli;
+		$this->values = new MixedCollection([]);
+	}
+
+	public function wants(): string {
+		return 'txt';
+	}
+
+	protected function createExtractor(): \Peku\Helpers\Http\Extractors\Extractable {
+		return new class extends \Peku\Helpers\Http\Extractors\Extractor {
+			protected function initialize(): void {
+				// No-op for testing
+			}
+		};
+	}
+}
 
 /**
  * Concrete test request implementations
@@ -38,16 +151,11 @@ class TestRequest extends Request {
 	protected function extract(): void {
 		$this->extractCalled++;
 		$this->type   = RequestType::Get;
-		$this->values = self::TEST_DATA;
+		$this->values = new MixedCollection(self::TEST_DATA);
 	}
 
 	public function wants(): string {
 		return $this->wantsFormat;
-	}
-
-	// Expose protected property for testing
-	public function getValues(): array {
-		return $this->values;
 	}
 
 	protected function createExtractor(): \Peku\Helpers\Http\Extractors\Extractable {
@@ -57,146 +165,5 @@ class TestRequest extends Request {
 				// No-op for testing
 			}
 		};
-	}
-}
-
-class EmptyRequest extends Request {
-	protected function extract(): void {
-		$this->type   = RequestType::Cli;
-		$this->values = [];
-	}
-
-	public function wants(): string {
-		return 'txt';
-	}
-
-	protected function createExtractor(): \Peku\Helpers\Http\Extractors\Extractable {
-		return new class extends \Peku\Helpers\Http\Extractors\Extractor {
-			protected function initialize(): void {
-				// No-op for testing
-			}
-		};
-	}
-}
-
-/**
- * Unit tests for Request abstract class
- */
-class RequestTest extends TestCase {
-
-	private TestRequest $request;
-
-	protected function setUp(): void {
-		$this->request = new TestRequest();
-	}
-
-	// ========================================================================
-	// Constructor & Extract Tests
-	// ========================================================================
-
-	/**
-	 * Verify extract() is called exactly once during construction
-	 * This ensures child classes properly initialize their data
-	 */
-	public function testConstructorCallsExtractOnce(): void {
-		$request = new TestRequest();
-		$this->assertSame(1, $request->extractCalled);
-	}
-
-	public function testExtractPopulatesType(): void {
-		$this->assertSame(RequestType::Get, $this->request->getType());
-	}
-
-	public function testExtractPopulatesValues(): void {
-		$this->assertSame(TestRequest::TEST_DATA, $this->request->getValues());
-	}
-
-	// ========================================================================
-	// wants() Tests
-	// ========================================================================
-
-	public function testWantsReturnsFormat(): void {
-		$this->assertSame('html', $this->request->wants());
-	}
-
-	public function testWantsCanReturnDifferentFormats(): void {
-		$this->request->wantsFormat = 'json';
-		$this->assertSame('json', $this->request->wants());
-	}
-
-	// ========================================================================
-	// get() Tests
-	// ========================================================================
-
-	/**
-	 * Verify get() retrieves values and returns defaults when not found
-	 */
-	public function testGetRetrievesValuesOrDefaults(): void {
-		// Existing values
-		$this->assertSame('John', $this->request->get('name'));
-		$this->assertSame('john@example.com', $this->request->get('email'));
-		// Array
-		$this->assertSame(TestRequest::TEST_DATA['tags'], $this->request->get('tags'));
-
-		// Missing values with defaults
-		$this->assertNull($this->request->get('nonexistent'));
-		$this->assertSame('default', $this->request->get('missing', 'default'));
-	}
-
-	// ========================================================================
-	// has() Tests
-	// ========================================================================
-
-	/**
-	 * Verify has() correctly checks key existence
-	 */
-	public function testHasChecksKeyExistence(): void {
-		$this->assertTrue($this->request->has('name'));
-		$this->assertTrue($this->request->has('email'));
-		$this->assertFalse($this->request->has('nonexistent'));
-	}
-
-	// ========================================================================
-	// all() Tests
-	// ========================================================================
-
-	/**
-	 * Verify all() returns complete data set
-	 */
-	public function testAllReturnsAllValues(): void {
-		$all = $this->request->all();
-
-		$this->assertIsArray($all);
-		$this->assertCount(8, $all);
-		$this->assertSame(TestRequest::TEST_DATA, $all);
-	}
-
-	// ========================================================================
-	// Integration Tests
-	// ========================================================================
-
-	/**
-	 * Verify helper methods from RetrievableHelpers trait work correctly
-	 * (Detailed trait testing is in RetrievableHelpersTest)
-	 */
-	public function testRetrievableHelpersTraitWorks(): void {
-		// Quick smoke test - trait provides only/except/hasAny/hasAll
-		$this->assertSame(['name' => 'John'], $this->request->only(['name']));
-		$this->assertCount(7, $this->request->except(['name']));
-		$this->assertTrue($this->request->hasAny(['name', 'missing']));
-		$this->assertTrue($this->request->hasAll(['name', 'email']));
-	}
-
-	/**
-	 * Verify multiple Request instances operate independently
-	 */
-	public function testMultipleRequestsAreIndependent(): void {
-		$request1 = new TestRequest();
-		$request2 = new EmptyRequest();
-
-		$this->assertNotEmpty($request1->all());
-		$this->assertEmpty($request2->all());
-		$this->assertSame(RequestType::Get, $request1->getType());
-		$this->assertSame(RequestType::Cli, $request2->getType());
 	}
 }

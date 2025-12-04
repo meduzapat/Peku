@@ -16,8 +16,7 @@ namespace Peku\Abstractions;
 /**
  * Interface for key-value data retrieval
  *
- * Provides common contract for accessing data by keys across different
- * contexts (requests, configuration, collections, etc.)
+ * Provides common contract for accessing data by keys across different contexts.
  */
 interface Retrievable {
 

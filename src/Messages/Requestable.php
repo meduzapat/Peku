@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Peku\Messages;
 
-use Peku\Abstractions\Retrievable;
+use Peku\Abstractions\MixedCollection;
 
 /**
  * Request interface for all request implementations
@@ -21,7 +21,7 @@ use Peku\Abstractions\Retrievable;
  * Defines public contract for request handling across different contexts
  * (HTTP, CLI, etc.)
  */
-interface Requestable extends Retrievable {
+interface Requestable {
 
 	/**
 	 * Get request type
@@ -29,6 +29,15 @@ interface Requestable extends Retrievable {
 	 * @return RequestType Request type enum (GET, POST, CLI, etc.)
 	 */
 	public function getType(): RequestType;
+
+	/**
+	 * Get request values collection
+	 *
+	 * Provides access to all request data with type casting support.
+	 *
+	 * @return MixedCollection Request data collection
+	 */
+	public function values(): MixedCollection;
 
 	/**
 	 * Determine desired response format

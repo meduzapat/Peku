@@ -13,18 +13,16 @@ declare(strict_types=1);
 
 namespace Peku\Messages;
 
-use Peku\Abstractions\RetrievableHelpers;
 use Peku\Helpers\Http\Extractors\Extractable;
+use Peku\Abstractions\MixedCollection;
 
 /**
  * Abstract base request providing unified interface for all request types
  *
- * Defines common contract for HTTP, CLI, and other request contexts.
+ * Uses MixedCollection for unified data access with type casting support.
  * Implementations handle context-specific data sources (superglobals, argv, etc.)
  */
 abstract class Request implements Requestable {
-
-	use RetrievableHelpers;
 
 	/**
 	 * @var RequestType Request type (GET, POST, CLI, etc.)
@@ -32,13 +30,12 @@ abstract class Request implements Requestable {
 	protected RequestType $type;
 
 	/**
-	 * @var array Extracted and sanitized request data
+	 * @var MixedCollection Extracted and sanitized request data with type casting
 	 */
-	protected array $values = [];
+	protected MixedCollection $values;
 
 	/**
 	 * Default extractor (can be overridden globally)
-	 * @var Extractable
 	 */
 	protected static ?Extractable $extractor = null;
 
@@ -55,10 +52,6 @@ abstract class Request implements Requestable {
 	 * Called during construction. Implementations load data from:
 	 * - HTTP: $_GET, $_POST, $_SERVER, etc.
 	 * - CLI: $argv, getopt(), etc.
-	 *
-	 * Must populate:
-	 * - $this->type   - Request type enum
-	 * - $this->values - Extracted request data
 	 */
 	abstract protected function extract(): void;
 
@@ -70,62 +63,25 @@ abstract class Request implements Requestable {
 	abstract protected function createExtractor(): Extractable;
 
 	/**
-	 * Get request type
-	 *
-	 * @return RequestType Request type enum (GET, POST, CLI, etc.)
+	 * @see Requestable::getType()
 	 */
 	public function getType(): RequestType {
 		return $this->type;
 	}
 
 	/**
-	 * Get input value by key with optional default
+	 * Get request values collection
 	 *
-	 * When default is provided, attempts to cast value to match default type
-	 * using Values::cast() for type-safe conversions.
-	 *
-	 * @param string $key Input key name
-	 * @param mixed  $default Default value if key not found
-	 * @return mixed Input value (casted if default provided) or default
+	 * @return MixedCollection Request data with type casting support
 	 */
-	public function get(string $key, mixed $default = null): mixed {
-
-		if (!$this->has($key)) {
-			return $default;
-		}
-
-		if (!\is_string($this->values[$key])) {
-			return $this->values[$key];
-		}
-
-		// Cast to match default type if default provided and value is string
-		return \Peku\Helpers\Utils\Data\Values::cast($this->values[$key], $default ?? '');
-	}
-
-	/**
-	 * Check if input key exists
-	 *
-	 * @param string $key Input key name
-	 * @return bool True if key exists
-	 */
-	public function has(string $key): bool {
-		return \array_key_exists($key, $this->values);
-	}
-
-	/**
-	 * Get all input data
-	 *
-	 * @return array All input data as associative array
-	 */
-	public function all(): array {
+	public function values(): MixedCollection {
 		return $this->values;
 	}
 
 	/**
 	 * Set default extractor
 	 *
-	 * @param class-string<Extractable> $extractorClass Extractor class name
-	 * @example HttpRequest::setDefaultExtractor(Advanced::class);
+	 * @param Extractable $extractor Extractor instance
 	 */
 	public static function setDefaultExtractor(Extractable $extractor): void {
 		self::$extractor = $extractor;
