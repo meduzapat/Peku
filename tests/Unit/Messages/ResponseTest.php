@@ -15,28 +15,7 @@ namespace Peku\Tests\Unit\Messages;
 
 use PHPUnit\Framework\TestCase;
 use Peku\Messages\Response;
-
-/**
- * Concrete test response for testing Response abstract class
- */
-class TestResponse extends Response {
-
-	public bool   $sendCalled   = false;
-	public string $sentContent  = '';
-
-	public function getCodeMessage(): string {
-		return "Code: {$this->code}";
-	}
-
-	protected function processContent(): string {
-		$this->sendCalled  = true;
-		$this->sentContent = (string)$this->content;
-		return $this->content;
-	}
-
-	protected function validate(mixed $content): void {}
-
-}
+use Peku\Messages\Requestable;
 
 /**
  * Unit tests for Response abstract base class
@@ -113,8 +92,8 @@ class ResponseTest extends TestCase {
 
 	public function testFluentInterfaceChaining(): void {
 		$result = $this->response
-		->setCode(201)
-		->setContent('Created');
+			->setCode(201)
+			->setContent('Created');
 
 		$this->assertSame($this->response, $result);
 		$this->assertSame(201, $this->response->getCode());
@@ -123,10 +102,10 @@ class ResponseTest extends TestCase {
 
 	public function testComplexChaining(): void {
 		$response = (new TestResponse())
-		->setCode(200)
-		->setContent('First')
-		->setCode(404)
-		->setContent('Not Found');
+			->setCode(200)
+			->setContent('First')
+			->setCode(404)
+			->setContent('Not Found');
 
 		$this->assertSame(404, $response->getCode());
 		$this->assertSame('Not Found', $response->getContent());
@@ -134,8 +113,8 @@ class ResponseTest extends TestCase {
 
 	public function testFluentInterfaceWithConstructor(): void {
 		$response = (new TestResponse('Initial', 200))
-		->setContent('Modified')
-		->setCode(201);
+			->setContent('Modified')
+			->setCode(201);
 
 		$this->assertSame('Modified', $response->getContent());
 		$this->assertSame(201, $response->getCode());
@@ -150,7 +129,9 @@ class ResponseTest extends TestCase {
 
 		$this->assertFalse($this->response->sendCalled);
 
+		ob_start();
 		$this->response->send();
+		ob_end_clean();
 
 		$this->assertTrue($this->response->sendCalled);
 		$this->assertSame('Test output', $this->response->sentContent);
@@ -178,7 +159,9 @@ class ResponseTest extends TestCase {
 		$this->assertSame('Not Found', $response->getContent());
 		$this->assertSame(404, $response->getCode());
 
+		ob_start();
 		$response->send();
+		ob_end_clean();
 
 		$this->assertTrue($response->sendCalled);
 		$this->assertSame('Not Found', $response->sentContent);
@@ -250,4 +233,29 @@ class ResponseTest extends TestCase {
 
 		$this->assertSame($data, $this->response->getContent());
 	}
+}
+
+/**
+ * Concrete test response for testing Response abstract class
+ */
+class TestResponse extends Response {
+
+	public bool   $sendCalled   = false;
+	public string $sentContent  = '';
+
+	public function getCodeMessage(): string {
+		return "Code: {$this->code}";
+	}
+
+	public function inquiry(Requestable $request): void {
+
+	}
+
+	protected function processContent(): string {
+		$this->sendCalled  = true;
+		$this->sentContent = (string)$this->content;
+		return $this->content;
+	}
+
+	protected function validate(mixed $content): void {}
 }

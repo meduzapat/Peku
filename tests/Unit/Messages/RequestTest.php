@@ -15,7 +15,8 @@ namespace Peku\Tests\Unit\Messages;
 
 use PHPUnit\Framework\TestCase;
 use Peku\Messages\{Request, RequestType};
-use Peku\Abstractions\MixedCollection;
+use Peku\Abstractions\Collection;
+use Peku\Helpers\Http\Extractors\{Extractable, Extractor};
 
 /**
  * Unit tests for Request abstract class
@@ -23,12 +24,9 @@ use Peku\Abstractions\MixedCollection;
  * Tests only Request-specific behavior:
  * - Constructor/extract lifecycle
  * - Type detection
- * - values() accessor returns proper MixedCollection
+ * - values() accessor returns proper Collection
  * - wants() format detection
  * - Instance independence
- *
- * Does NOT test MixedCollection functionality (get, has, all, etc.)
- * - That's covered in MixedCollectionTest
  */
 class RequestTest extends TestCase {
 
@@ -54,9 +52,9 @@ class RequestTest extends TestCase {
 		$this->assertSame(RequestType::Get, $this->request->getType());
 	}
 
-	public function testExtractPopulatesMixedCollection(): void {
-		// Verify values() returns MixedCollection
-		$this->assertInstanceOf(MixedCollection::class, $this->request->values());
+	public function testExtractPopulatesCollection(): void {
+		// Verify values() returns Collection
+		$this->assertInstanceOf(Collection::class, $this->request->values());
 		$this->assertSame(TestRequest::TEST_DATA, $this->request->values()->all());
 	}
 
@@ -78,14 +76,14 @@ class RequestTest extends TestCase {
 	// ========================================================================
 
 	/**
-	 * Verify values() returns MixedCollection with proper data
+	 * Verify values() returns Collection with proper data
 	 */
-	public function testValuesReturnsMixedCollection(): void {
+	public function testValuesReturnsCollection(): void {
 		$values = $this->request->values();
 
-		$this->assertInstanceOf(MixedCollection::class, $values);
+		$this->assertInstanceOf(Collection::class, $values);
 
-		// Smoke test - full MixedCollection testing is in MixedCollectionTest
+		// Smoke test - full Collection testing is in CollectionTest
 		$this->assertSame('John', $values->get('name'));
 		$this->assertSame(25, $values->get('age', 0));
 		$this->assertTrue($values->has('name'));
@@ -113,15 +111,15 @@ class RequestTest extends TestCase {
 class EmptyRequest extends Request {
 	protected function extract(): void {
 		$this->type   = RequestType::Cli;
-		$this->values = new MixedCollection([]);
+		$this->values = new Collection([]);
 	}
 
 	public function wants(): string {
 		return 'txt';
 	}
 
-	protected function createExtractor(): \Peku\Helpers\Http\Extractors\Extractable {
-		return new class extends \Peku\Helpers\Http\Extractors\Extractor {
+	protected function createExtractor(): Extractable {
+		return new class extends Extractor {
 			protected function initialize(): void {
 				// No-op for testing
 			}
@@ -151,16 +149,16 @@ class TestRequest extends Request {
 	protected function extract(): void {
 		$this->extractCalled++;
 		$this->type   = RequestType::Get;
-		$this->values = new MixedCollection(self::TEST_DATA);
+		$this->values = new Collection(self::TEST_DATA);
 	}
 
 	public function wants(): string {
 		return $this->wantsFormat;
 	}
 
-	protected function createExtractor(): \Peku\Helpers\Http\Extractors\Extractable {
+	protected function createExtractor(): Extractable {
 		// Return a mock or simple implementation
-		return new class extends \Peku\Helpers\Http\Extractors\Extractor {
+		return new class extends Extractor {
 			protected function initialize(): void {
 				// No-op for testing
 			}

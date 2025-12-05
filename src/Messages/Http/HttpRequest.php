@@ -15,12 +15,20 @@ namespace Peku\Messages\Http;
 
 use Peku\Messages\{Request, RequestType};
 use Peku\Helpers\Http\Extractors\{Extractable, Normal};
-use Peku\Abstractions\{Collection, MixedCollection};
+use Peku\Abstractions\{Collection, MutableCollection};
 
 /**
  * HTTP request implementation with metadata and context-aware data access
  */
 class HttpRequest extends Request {
+
+	/**
+	 * Trust proxy headers (X-Forwarded-*, CF-Connecting-IP, X-Real-IP)
+	 *
+	 * WARNING: Only enable if behind trusted reverse proxy/load balancer.
+	 * Trusting proxy headers from untrusted sources allows IP spoofing.
+	 */
+	protected static bool $trustProxies = false;
 
 	protected Collection
 		//Server variables (string-only)
@@ -42,45 +50,20 @@ class HttpRequest extends Request {
 	 */
 	protected string
 		$scheme   = '',
-		$host     = '',
 		$url      = '',
 		$uri      = '',
-		$referer  = '',
 		$remoteIp = '';
 
 	/**
-	 * Extract HTTP request data and metadata
-	 * @see Request::extract()
+	 * Enable proxy header trust
+	 *
+	 * WARNING: Only enable behind trusted reverse proxy/load balancer.
+	 * Allows X-Forwarded-*, CF-Connecting-IP, X-Real-IP headers.
+	 *
+	 * @param bool $trust Trust proxy headers
 	 */
-	protected function extract(): void {
-		// 1. Extract via engine (secures and clears superglobals)
-		$extractor     = $this->createExtractor();
-		$this->server  = new Collection($extractor->getServer());
-		$this->query   = new MixedCollection($extractor->getQuery());
-		$this->data    = new MixedCollection($extractor->getData());
-		$this->files   = $extractor->getFiles();
-
-		// 2. Detect request type
-		$method     = $this->server->get('REQUEST_METHOD', 'GET');
-		$this->type = RequestType::tryFrom($method) ?? RequestType::Get;
-
-		// 3. Extract headers from server variables
-		$this->headers = new Collection($this->extractHeaders());
-
-		// 4. Merge for unified access via values()
-		//    POST overrides GET if same key exists
-		$this->values = new MixedCollection([...$this->query->all(), ...$this->data->all()]);
-
-		// 5. Extract HTTP metadata
-		$this->scheme   = $this->detectScheme();
-		$this->host     = $this->server->get('HTTP_HOST', '');
-		$this->uri      = $this->server->get('REQUEST_URI', '');
-		$this->referer  = $this->server->get('HTTP_REFERER', '');
-		$this->remoteIp = $this->detectRemoteIp();
-
-		// 6. Build URL (scheme + host + path, NO query string)
-		$path      = parse_url($this->uri, PHP_URL_PATH) ?? '/';
-		$this->url = $this->scheme . '://' . $this->host . $path;
+	public static function trustProxies(bool $trust = true): void {
+		self::$trustProxies = $trust;
 	}
 
 	// ========================================================================
@@ -99,18 +82,18 @@ class HttpRequest extends Request {
 	/**
 	 * Get query parameters collection (GET)
 	 *
-	 * @return MixedCollection Query parameters with type casting
+	 * @return Collection Query parameters with type casting
 	 */
-	public function query(): MixedCollection {
+	public function query(): Collection {
 		return $this->query;
 	}
 
 	/**
 	 * Get body parameters collection (POST/PUT/PATCH)
 	 *
-	 * @return MixedCollection Body parameters with type casting
+	 * @return Collection Body parameters with type casting
 	 */
-	public function data(): MixedCollection {
+	public function data(): Collection {
 		return $this->data;
 	}
 
@@ -172,6 +155,7 @@ class HttpRequest extends Request {
 
 			// Extract quality (q parameter) - default 1.0
 			$quality = 1.0;
+			$matches = null;
 			foreach (array_slice($parts, 1) as $param) {
 				if (preg_match('/^\s*q\s*=\s*([\d.]+)\s*$/i', $param, $matches)) {
 					$quality = (float)$matches[1];
@@ -256,7 +240,7 @@ class HttpRequest extends Request {
 	 * Get host (domain + port if non-standard)
 	 */
 	public function getHost(): string {
-		return $this->host;
+		return $this->headers->get('Host', '');
 	}
 
 	/**
@@ -290,7 +274,7 @@ class HttpRequest extends Request {
 	 * Get HTTP referer
 	 */
 	public function getReferer(): string {
-		return $this->referer;
+		return $this->headers->get('Referer', '');
 	}
 
 	/**
@@ -320,6 +304,44 @@ class HttpRequest extends Request {
 	// ========================================================================
 
 	/**
+	 * Extract HTTP request data and metadata
+	 * @see Request::extract()
+	 */
+	protected function extract(): void {
+		// 1. Extract via engine (secures and clears superglobals)
+		$extractor   = $this->createExtractor();
+		$server      = new MutableCollection($extractor->getServer());
+		$this->query = new Collection($extractor->getQuery());
+		$this->data  = new Collection($extractor->getData());
+		$this->files = $extractor->getFiles();
+
+		// 2. Detect request type (pull REQUEST_METHOD)
+		$method     = $server->pull('REQUEST_METHOD', 'GET');
+		$this->type = RequestType::tryFrom($method) ?? RequestType::Get;
+
+		// 3. Extract HTTP metadata BEFORE header extraction
+		//    (detectScheme/detectRemoteIp need proxy headers)
+		$this->scheme   = $this->detectScheme($server);
+		$this->remoteIp = $this->detectRemoteIp($server);
+		$this->uri      = $server->pull('REQUEST_URI', '');
+
+		// 4. Extract headers from remaining server variables (pulls HTTP_*, CONTENT_*)
+		//    HTTP_HOST and HTTP_REFERER remain in headers collection
+		$this->headers = new Collection($this->extractHeaders($server));
+
+		// 5. Build URL (scheme + host + path, NO query string)
+		$path      = parse_url($this->uri, PHP_URL_PATH) ?? '/';
+		$this->url = $this->scheme . '://' . $this->getHost() . $path;
+
+		// 6. Merge query+data for unified access via values()
+		//    POST overrides GET if same key exists
+		$this->values = new Collection([...$this->query->all(), ...$this->data->all()]);
+
+		// 7. Store cleaned server variables (extracted metadata removed)
+		$this->server = new Collection($server->all());
+	}
+
+	/**
 	 * Create extractor engine
 	 *
 	 * Uses custom extractor if set via setDefaultExtractor(),
@@ -334,46 +356,51 @@ class HttpRequest extends Request {
 	/**
 	 * Detect URI scheme with proxy awareness
 	 *
+	 * Pulls scheme-related variables from server collection.
+	 *
+	 * @param MutableCollection $server Server variables
 	 * @return string 'http' or 'https'
 	 */
-	private function detectScheme(): string {
-		$https = $this->server->get('HTTPS', '');
+	private function detectScheme(MutableCollection $server): string {
+		$https = $server->pull('HTTPS', '');
 
 		if ($https === 'on' || $https === '1') {
 			return 'https';
 		}
 
-		// Check forwarded proto (behind proxy)
-		$forwarded = $this->server->get('HTTP_X_FORWARDED_PROTO', '');
-		if (strtolower($forwarded) === 'https') {
-			return 'https';
+		// Check forwarded proto only if trusting proxies
+		if (self::$trustProxies) {
+			$forwarded = $server->pull('HTTP_X_FORWARDED_PROTO', '');
+			if (strtolower($forwarded) === 'https') {
+				return 'https';
+			}
 		}
 
 		// Check port
-		$port = (int)$this->server->get('SERVER_PORT', '80');
+		$port = $server->pull('SERVER_PORT', 80);
 		return $port === 443 ? 'https' : 'http';
 	}
 
 	/**
 	 * Detect remote IP with proxy awareness and validation
 	 *
-	 * Tries multiple headers in order, validates IP format.
-	 * Returns first valid IP found, empty string if none.
+	 * Pulls IP-related variables from server collection.
 	 *
+	 * @param MutableCollection $server Server variables
 	 * @return string Remote IP address or empty string
 	 */
-	private function detectRemoteIp(): string {
-		// Try various headers (proxy-aware)
-		$candidates = [
-			// Cloudflare CDN
-			$this->server->get('HTTP_CF_CONNECTING_IP', ''),
-			// Standard reverse proxy
-			$this->server->get('HTTP_X_FORWARDED_FOR', ''),
-			// Nginx reverse proxy
-			$this->server->get('HTTP_X_REAL_IP', ''),
-			// Direct connection
-			$this->server->get('REMOTE_ADDR', ''),
-		];
+	private function detectRemoteIp(MutableCollection $server): string {
+		$candidates = [];
+
+		// Add proxy headers only if trusting proxies
+		if (self::$trustProxies) {
+			$candidates[] = $server->pull('HTTP_CF_CONNECTING_IP', '');  // Cloudflare CDN
+			$candidates[] = $server->pull('HTTP_X_FORWARDED_FOR', '');   // Standard reverse proxy
+			$candidates[] = $server->pull('HTTP_X_REAL_IP', '');         // Nginx reverse proxy
+		}
+
+		// Always check direct connection
+		$candidates[] = $server->pull('REMOTE_ADDR', '');
 
 		foreach ($candidates as $ip) {
 			if ($ip !== '') {
@@ -399,24 +426,27 @@ class HttpRequest extends Request {
 	/**
 	 * Extract and normalize HTTP headers from server variables
 	 *
-	 * Converts HTTP_* server keys to proper Title-Case header names.
+	 * Pulls HTTP_* and CONTENT_* keys from server collection.
 	 *
-	 * @return array Normalized headers
+	 * @param MutableCollection $server Server variables
+	 * @return array<string, string> Normalized headers
 	 */
-	private function extractHeaders(): array {
+	private function extractHeaders(MutableCollection $server): array {
 		$headers = [];
 
-		foreach ($this->server as $key => $value) {
+		foreach ($server as $key => $value) {
 			// Convert HTTP_* to proper header names
 			if (str_starts_with($key, 'HTTP_')) {
 				// HTTP_ACCEPT_LANGUAGE -> Accept-Language
 				$name = str_replace(' ', '-', ucwords(str_replace('_', ' ', strtolower(substr($key, 5)))));
 				$headers[$name] = $value;
+				$server->remove($key);
 			}
 			// Special cases (not prefixed with HTTP_)
 			elseif (in_array($key, ['CONTENT_TYPE', 'CONTENT_LENGTH'])) {
 				$name = str_replace(' ', '-', ucwords(str_replace('_', ' ', strtolower($key))));
 				$headers[$name] = $value;
+				$server->remove($key);
 			}
 		}
 

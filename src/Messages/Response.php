@@ -84,6 +84,7 @@ abstract class Response implements Responseable {
 
 	/**
 	 * Checks if the content is valid.
+	 *
 	 * @param mixed $content
 	 * @throws \InvalidArgumentException if the check fails.
 	 */

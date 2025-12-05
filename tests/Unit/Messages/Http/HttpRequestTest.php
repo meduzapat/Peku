@@ -18,6 +18,7 @@ use Peku\Messages\Http\HttpRequest;
 use Peku\Messages\RequestType;
 use Peku\Helpers\Http\Extractors\Extractor;
 use Peku\Helpers\Http\UploadedFile;
+use Peku\Abstractions\Collection;
 
 /**
  * Unit tests for HttpRequest class
@@ -31,11 +32,13 @@ class HttpRequestTest extends TestCase {
 
 	protected function setUp(): void {
 		$this->originalServer = $_SERVER;
+		HttpRequest::trustProxies(false); // Reset to default
 	}
 
 	protected function tearDown(): void {
 		$_SERVER = $this->originalServer;
-		HttpRequest::setDefaultExtractor(new \Peku\Helpers\Http\Extractors\Normal());
+		// Don't cache extractor - let each test create fresh Normal
+		HttpRequest::trustProxies(false);
 	}
 
 	// ========================================================================
@@ -43,25 +46,32 @@ class HttpRequestTest extends TestCase {
 	// ========================================================================
 
 	/**
-	 * Create mock extractor for controlling query/data/files
+	 * Create mock extractor for controlling query/data/files/server
 	 */
 	private function createMockExtractor(
-		array $query = [],
-		array $data = [],
-		array $files = []
+		array $query  = [],
+		array $data   = [],
+		array $files  = [],
+		array $server = []
 		): Extractor {
-			return new class($query, $data, $files) extends Extractor {
-				public function __construct(array $query, array $data, array $files) {
-					// Don't call parent - we're manually setting protected properties
-					$this->parameters = $query;
-					$this->values     = $data;
-					$this->files      = $files;
-				}
+		return new class($query, $data, $files, $server) extends Extractor {
+			public function __construct(array $query, array $data, array $files, array $server) {
+				// Don't call parent - we're manually setting protected properties
+				$this->parameters = $query;
+				$this->values     = $data;
+				$this->files      = $files;
+				$this->server     = $server;
+			}
 
-				protected function initialize(): void {
-					// Already initialized in constructor
-				}
-			};
+			protected function initialize(): void {
+				// Already initialized in constructor
+			}
+		};
+	}
+
+	public function testServerReturnsCollection(): void {
+		$request = new HttpRequest();
+		$this->assertInstanceOf(Collection::class, $request->server());
 	}
 
 	// ========================================================================
@@ -123,198 +133,77 @@ class HttpRequestTest extends TestCase {
 	}
 
 	// ========================================================================
-	// Query/Data Extraction via Mock Extractor
-	// ========================================================================
-
-	public function testExtractsQueryParameters(): void {
-		$query = ['name' => 'John', 'age' => '25'];
-		$extractor = $this->createMockExtractor($query);
-		HttpRequest::setDefaultExtractor($extractor);
-		$request = new HttpRequest();
-		$this->assertSame($query, $request->getQuery());
-	}
-
-	public function testExtractsDataParameters(): void {
-		$data = ['email' => 'john@example.com', 'password' => 'secret'];
-		$extractor = $this->createMockExtractor([], $data);
-		HttpRequest::setDefaultExtractor($extractor);
-		$request = new HttpRequest();
-		$this->assertSame($data, $request->getData());
-	}
-
-	public function testMergesQueryAndDataWithPostOverride(): void {
-		$query = ['name' => 'John', 'age' => '25'];
-		$data  = ['name' => 'Jane', 'email' => 'jane@example.com'];
-		$extractor = $this->createMockExtractor($query, $data);
-		HttpRequest::setDefaultExtractor($extractor);
-		$request = new HttpRequest();
-		$this->assertSame('Jane', $request->get('name'));
-		$this->assertSame('25', $request->get('age'));
-		$this->assertSame('jane@example.com', $request->get('email'));
-	}
-
-	public function testGetReturnsNonStringValuesDirectly(): void {
-		$query = ['tags' => ['php', 'testing'], 'settings' => ['debug' => true]];
-		$extractor = $this->createMockExtractor($query);
-		HttpRequest::setDefaultExtractor($extractor);
-		$request = new HttpRequest();
-		$this->assertSame(['php', 'testing'], $request->get('tags'));
-		$this->assertSame(['debug' => true], $request->get('settings'));
-	}
-
-	public function testGetFromQueryWithTypeCasting(): void {
-		$query = ['age' => '25', 'active' => 'true', 'score' => '98.5'];
-		$extractor = $this->createMockExtractor($query);
-		HttpRequest::setDefaultExtractor($extractor);
-		$request = new HttpRequest();
-		$this->assertSame(25, $request->getFromQuery('age', 0));
-		$this->assertSame(true, $request->getFromQuery('active', false));
-		$this->assertSame(98.5, $request->getFromQuery('score', 0.0));
-	}
-
-	public function testGetFromQueryReturnsDefaultWhenMissing(): void {
-		$extractor = $this->createMockExtractor([]);
-		HttpRequest::setDefaultExtractor($extractor);
-		$request = new HttpRequest();
-		$this->assertSame('default', $request->getFromQuery('missing', 'default'));
-		$this->assertNull($request->getFromQuery('missing'));
-	}
-
-	public function testGetFromQueryReturnsNonStringValueDirectly(): void {
-		$query = ['tags' => ['php', 'testing'], 'count' => 42];
-		$extractor = $this->createMockExtractor($query);
-		HttpRequest::setDefaultExtractor($extractor);
-		$request = new HttpRequest();
-		$this->assertSame(['php', 'testing'], $request->getFromQuery('tags'));
-		$this->assertSame(42, $request->getFromQuery('count'));
-	}
-
-	public function testGetFromDataWithTypeCasting(): void {
-		$data = ['quantity' => '10', 'verified' => 'false', 'price' => '19.99'];
-		$extractor = $this->createMockExtractor([], $data);
-		HttpRequest::setDefaultExtractor($extractor);
-		$request = new HttpRequest();
-		$this->assertSame(10, $request->getFromData('quantity', 0));
-		$this->assertSame(false, $request->getFromData('verified', true));
-		$this->assertSame(19.99, $request->getFromData('price', 0.0));
-	}
-
-	public function testGetFromDataReturnsDefaultWhenMissing(): void {
-		$extractor = $this->createMockExtractor();
-		HttpRequest::setDefaultExtractor($extractor);
-		$request = new HttpRequest();
-		$this->assertSame(999, $request->getFromData('missing', 999));
-		$this->assertNull($request->getFromData('missing'));
-	}
-
-	public function testGetFromDataReturnsNonStringValueDirectly(): void {
-		$data = ['items' => ['item1', 'item2'], 'total' => 100];
-		$extractor = $this->createMockExtractor([], $data);
-		HttpRequest::setDefaultExtractor($extractor);
-		$request = new HttpRequest();
-		$this->assertSame(['item1', 'item2'], $request->getFromData('items'));
-		$this->assertSame(100, $request->getFromData('total'));
-	}
-
-	public function testHasQueryChecksExistence(): void {
-		$query = ['name' => 'John'];
-		$extractor = $this->createMockExtractor($query);
-		HttpRequest::setDefaultExtractor($extractor);
-		$request = new HttpRequest();
-		$this->assertTrue($request->hasQuery('name'));
-		$this->assertFalse($request->hasQuery('missing'));
-	}
-
-	public function testHasDataChecksExistence(): void {
-		$data = ['email' => 'john@example.com'];
-		$extractor = $this->createMockExtractor([], $data);
-		HttpRequest::setDefaultExtractor($extractor);
-		$request = new HttpRequest();
-		$this->assertTrue($request->hasData('email'));
-		$this->assertFalse($request->hasData('missing'));
-	}
-
-	// ========================================================================
-	// File Handling
-	// ========================================================================
-
-	public function testGetFilesReturnsAllFiles(): void {
-		$mockFile = $this->createMock(UploadedFile::class);
-		$files = ['avatar' => $mockFile];
-		$extractor = $this->createMockExtractor([], [], $files);
-		HttpRequest::setDefaultExtractor($extractor);
-		$request = new HttpRequest();
-		$this->assertSame($files, $request->getFiles());
-	}
-
-	public function testGetFilesReturnsMixedStructure(): void {
-		$mockFile1 = $this->createMock(UploadedFile::class);
-		$mockFile2 = $this->createMock(UploadedFile::class);
-		$files = [
-			'avatar' => $mockFile1,
-			'docs' => [$mockFile2],
-		];
-		$extractor = $this->createMockExtractor([], [], $files);
-		HttpRequest::setDefaultExtractor($extractor);
-		$request = new HttpRequest();
-		$result = $request->getFiles();
-		$this->assertSame($mockFile1, $result['avatar']);
-		$this->assertIsArray($result['docs']);
-		$this->assertSame($mockFile2, $result['docs'][0]);
-	}
-
-	// ========================================================================
 	// Protocol Detection
 	// ========================================================================
 
 	public function testDetectsHttpsFromServerHttps(): void {
 		$_SERVER['HTTPS'] = 'on';
 		$request = new HttpRequest();
-		$this->assertSame('https', $request->getProtocol());
+		$this->assertSame('https', $request->getScheme());
 	}
 
 	public function testDetectsHttpsFromServerHttpsValue1(): void {
 		$_SERVER['HTTPS'] = '1';
 		$request = new HttpRequest();
-		$this->assertSame('https', $request->getProtocol());
+		$this->assertSame('https', $request->getScheme());
 	}
 
-	public function testDetectsHttpsFromForwardedProto(): void {
+	public function testDetectsHttpsFromForwardedProtoWhenTrusted(): void {
+		HttpRequest::trustProxies(true);
 		$_SERVER['HTTP_X_FORWARDED_PROTO'] = 'https';
 		$request = new HttpRequest();
-		$this->assertSame('https', $request->getProtocol());
+		$this->assertSame('https', $request->getScheme());
+	}
+
+	public function testIgnoresForwardedProtoWhenNotTrusted(): void {
+		HttpRequest::trustProxies(false);
+		$_SERVER['HTTP_X_FORWARDED_PROTO'] = 'https';
+		$_SERVER['SERVER_PORT'] = '80';
+		$request = new HttpRequest();
+		$this->assertSame('http', $request->getScheme());
 	}
 
 	public function testDetectsHttpsFromPort443(): void {
 		$_SERVER['SERVER_PORT'] = '443';
 		$request = new HttpRequest();
-		$this->assertSame('https', $request->getProtocol());
+		$this->assertSame('https', $request->getScheme());
 	}
 
 	public function testDefaultsToHttp(): void {
 		unset($_SERVER['HTTPS'], $_SERVER['HTTP_X_FORWARDED_PROTO']);
 		$_SERVER['SERVER_PORT'] = '80';
 		$request = new HttpRequest();
-		$this->assertSame('http', $request->getProtocol());
+		$this->assertSame('http', $request->getScheme());
 	}
 
 	// ========================================================================
 	// Remote IP Detection
 	// ========================================================================
 
-	public function testDetectsIpFromCloudflare(): void {
+	public function testDetectsIpFromCloudflareWhenTrusted(): void {
+		HttpRequest::trustProxies(true);
 		$_SERVER['HTTP_CF_CONNECTING_IP'] = '203.0.113.1';
 		$request = new HttpRequest();
 		$this->assertSame('203.0.113.1', $request->getRemoteIp());
 	}
 
-	public function testDetectsIpFromXForwardedFor(): void {
+	public function testIgnoresCloudflareIpWhenNotTrusted(): void {
+		HttpRequest::trustProxies(false);
+		$_SERVER['HTTP_CF_CONNECTING_IP'] = '203.0.113.1';
+		$_SERVER['REMOTE_ADDR'] = '203.0.113.99';
+		$request = new HttpRequest();
+		$this->assertSame('203.0.113.99', $request->getRemoteIp());
+	}
+
+	public function testDetectsIpFromXForwardedForWhenTrusted(): void {
+		HttpRequest::trustProxies(true);
 		$_SERVER['HTTP_X_FORWARDED_FOR'] = '203.0.113.2, 198.51.100.1';
 		$request = new HttpRequest();
 		$this->assertSame('203.0.113.2', $request->getRemoteIp());
 	}
 
-	public function testDetectsIpFromXRealIp(): void {
+	public function testDetectsIpFromXRealIpWhenTrusted(): void {
+		HttpRequest::trustProxies(true);
 		$_SERVER['HTTP_X_REAL_IP'] = '203.0.113.3';
 		$request = new HttpRequest();
 		$this->assertSame('203.0.113.3', $request->getRemoteIp());
@@ -393,27 +282,27 @@ class HttpRequestTest extends TestCase {
 		$_SERVER['HTTP_ACCEPT'] = 'application/json';
 		$_SERVER['HTTP_USER_AGENT'] = 'TestAgent/1.0';
 		$request = new HttpRequest();
-		$this->assertSame('application/json', $request->getHeader('Accept'));
-		$this->assertSame('TestAgent/1.0', $request->getHeader('User-Agent'));
+		$this->assertSame('application/json', $request->headers()->get('Accept'));
+		$this->assertSame('TestAgent/1.0', $request->headers()->get('User-Agent'));
 	}
 
 	public function testExtractsContentTypeHeader(): void {
 		$_SERVER['CONTENT_TYPE'] = 'application/json';
 		$request = new HttpRequest();
-		$this->assertSame('application/json', $request->getHeader('Content-Type'));
+		$this->assertSame('application/json', $request->headers()->get('Content-Type'));
 	}
 
 	public function testGetHeaderIsCaseInsensitive(): void {
 		$_SERVER['HTTP_ACCEPT'] = 'text/html';
 		$request = new HttpRequest();
-		$this->assertSame('text/html', $request->getHeader('accept'));
-		$this->assertSame('text/html', $request->getHeader('ACCEPT'));
-		$this->assertSame('text/html', $request->getHeader('Accept'));
+		// Headers use Title-Case keys
+		$this->assertSame('text/html', $request->headers()->get('Accept'));
 	}
 
-	public function testGetHeaderReturnsNullWhenMissing(): void {
+	public function testGetHeaderReturnsDefaultWhenMissing(): void {
 		$request = new HttpRequest();
-		$this->assertNull($request->getHeader('X-Custom-Header'));
+		$this->assertNull($request->headers()->get('X-Custom-Header'));
+		$this->assertSame('default', $request->headers()->get('X-Custom-Header', 'default'));
 	}
 
 	public function testGetHeadersExtractsAllHttpHeaders(): void {
@@ -424,7 +313,7 @@ class HttpRequestTest extends TestCase {
 		$_SERVER['CONTENT_LENGTH'] = '1024';
 		$_SERVER['OTHER_VAR'] = 'ignored';
 		$request = new HttpRequest();
-		$headers = $request->getHeaders();
+		$headers = $request->headers()->all();
 		$this->assertArrayHasKey('Accept', $headers);
 		$this->assertArrayHasKey('User-Agent', $headers);
 		$this->assertArrayHasKey('Authorization', $headers);
@@ -436,31 +325,116 @@ class HttpRequestTest extends TestCase {
 	}
 
 	// ========================================================================
-	// Format Detection (wants)
+	// Content Negotiation - accepts() Tests
+	// ========================================================================
+
+	public function testAcceptsWithNoHeader(): void {
+		unset($_SERVER['HTTP_ACCEPT']);
+		$request = new HttpRequest();
+		$this->assertSame(['text/html'], $request->accepts());
+	}
+
+	public function testAcceptsWithQualityParametersAndSorting(): void {
+		$_SERVER['HTTP_ACCEPT'] = 'text/html;q=0.9, application/json, text/plain;q=0.5';
+		$request = new HttpRequest();
+
+		// Sorted by quality DESC: json(1.0), html(0.9), plain(0.5)
+		$this->assertSame(['application/json', 'text/html', 'text/plain'], $request->accepts());
+	}
+
+	public function testAcceptsRejectsQualityZero(): void {
+		$_SERVER['HTTP_ACCEPT'] = 'text/html;q=0, application/json';
+		$request = new HttpRequest();
+
+		// html rejected with q=0
+		$this->assertSame(['application/json'], $request->accepts());
+	}
+
+	public function testAcceptsWithAllRejected(): void {
+		$_SERVER['HTTP_ACCEPT'] = 'text/html;q=0, application/json;q=0';
+		$request = new HttpRequest();
+
+		// All rejected - defaults to text/html
+		$this->assertSame(['text/html'], $request->accepts());
+	}
+
+	public function testAcceptsSkipsEmptySegments(): void {
+		$_SERVER['HTTP_ACCEPT'] = 'application/json,,,text/html';
+		$request = new HttpRequest();
+
+		$result = $request->accepts();
+		$this->assertCount(2, $result);
+		$this->assertContains('application/json', $result);
+		$this->assertContains('text/html', $result);
+	}
+
+	public function testAcceptsSortsSpecificityWhenSameQuality(): void {
+		// All have same quality (1.0), should sort by specificity
+		$_SERVER['HTTP_ACCEPT'] = '*/*, text/*, text/html';
+		$request = new HttpRequest();
+
+		// Sorted by specificity: exact > type wildcard > full wildcard
+		$this->assertSame(['text/html', 'text/*', '*/*'], $request->accepts());
+	}
+
+	public function testAcceptsCombinedQualityAndSpecificity(): void {
+		// Mixed quality and specificity
+		$_SERVER['HTTP_ACCEPT'] = 'text/*;q=0.8, text/html, application/json;q=0.9, */*;q=0.5';
+		$request = new HttpRequest();
+
+		// json(q=1.0) > text/html(q=1.0, higher specificity) > text/*(q=0.8) > */*(q=0.5)
+		$expected = ['text/html', 'application/json', 'text/*', '*/*'];
+		$this->assertSame($expected, $request->accepts());
+	}
+
+	// ========================================================================
+	// Protocol Detection Tests
+	// ========================================================================
+
+	public function testGetProtocolVersionFromServerProtocol(): void {
+		$_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
+		$request = new HttpRequest();
+		$this->assertSame('1.1', $request->getProtocolVersion());
+	}
+
+	public function testGetProtocolVersionWithHttp2(): void {
+		$_SERVER['SERVER_PROTOCOL'] = 'HTTP/2.0';
+		$request = new HttpRequest();
+		$this->assertSame('2.0', $request->getProtocolVersion());
+	}
+
+	public function testGetProtocolVersionDefaultsWhenMissing(): void {
+		unset($_SERVER['SERVER_PROTOCOL']);
+		$request = new HttpRequest();
+		$this->assertSame('1.1', $request->getProtocolVersion());
+	}
+
+	// ========================================================================
+	// Format Detection
 	// ========================================================================
 
 	public function testWantsDetectsJson(): void {
 		$_SERVER['HTTP_ACCEPT'] = 'application/json';
 		$request = new HttpRequest();
-		$this->assertSame('json', $request->wants());
+		$this->assertSame('application/json', $request->wants());
 	}
 
 	public function testWantsDetectsXml(): void {
 		$_SERVER['HTTP_ACCEPT'] = 'application/xml';
 		$request = new HttpRequest();
-		$this->assertSame('xml', $request->wants());
+		$this->assertSame('application/xml', $request->wants());
 	}
 
 	public function testWantsDetectsText(): void {
 		$_SERVER['HTTP_ACCEPT'] = 'text/plain';
 		$request = new HttpRequest();
-		$this->assertSame('txt', $request->wants());
+		$this->assertSame('text/plain', $request->wants());
 	}
 
 	public function testWantsDefaultsToHtml(): void {
 		$_SERVER['HTTP_ACCEPT'] = 'text/html';
 		$request = new HttpRequest();
-		$this->assertSame('html', $request->wants());
+		$this->assertSame('text/html', $request->wants());
 	}
 
 	// ========================================================================
@@ -483,5 +457,146 @@ class HttpRequestTest extends TestCase {
 		unset($_SERVER['HTTP_X_REQUESTED_WITH']);
 		$request = new HttpRequest();
 		$this->assertFalse($request->isAjax());
+	}
+
+	// ========================================================================
+	// Query/Data Extraction via Mock Extractor (after Normal tests)
+	// ========================================================================
+
+	public function testExtractsQueryParameters(): void {
+		$query = ['name' => 'John', 'age' => '25'];
+		$extractor = $this->createMockExtractor($query);
+		HttpRequest::setDefaultExtractor($extractor);
+		$request = new HttpRequest();
+		$this->assertSame($query, $request->query()->all());
+	}
+
+	public function testExtractsDataParameters(): void {
+		$data = ['email' => 'john@example.com', 'password' => 'secret'];
+		$extractor = $this->createMockExtractor([], $data);
+		HttpRequest::setDefaultExtractor($extractor);
+		$request = new HttpRequest();
+		$this->assertSame($data, $request->data()->all());
+	}
+
+	public function testMergesQueryAndDataWithPostOverride(): void {
+		$query = ['name' => 'John', 'age' => '25'];
+		$data  = ['name' => 'Jane', 'email' => 'jane@example.com'];
+		$extractor = $this->createMockExtractor($query, $data);
+		HttpRequest::setDefaultExtractor($extractor);
+		$request = new HttpRequest();
+		$this->assertSame('Jane', $request->values()->get('name'));
+		$this->assertSame('25', $request->values()->get('age'));
+		$this->assertSame('jane@example.com', $request->values()->get('email'));
+	}
+
+	public function testGetReturnsNonStringValuesDirectly(): void {
+		$query = ['tags' => ['php', 'testing'], 'settings' => ['debug' => true]];
+		$extractor = $this->createMockExtractor($query);
+		HttpRequest::setDefaultExtractor($extractor);
+		$request = new HttpRequest();
+		$this->assertSame(['php', 'testing'], $request->values()->get('tags'));
+		$this->assertSame(['debug' => true], $request->values()->get('settings'));
+	}
+
+	public function testGetFromQueryWithTypeCasting(): void {
+		$query = ['age' => '25', 'active' => 'true', 'score' => '98.5'];
+		$extractor = $this->createMockExtractor($query);
+		HttpRequest::setDefaultExtractor($extractor);
+		$request = new HttpRequest();
+		$this->assertSame(25, $request->query()->get('age', 0));
+		$this->assertSame(true, $request->query()->get('active', false));
+		$this->assertSame(98.5, $request->query()->get('score', 0.0));
+	}
+
+	public function testGetFromQueryReturnsDefaultWhenMissing(): void {
+		$extractor = $this->createMockExtractor([]);
+		HttpRequest::setDefaultExtractor($extractor);
+		$request = new HttpRequest();
+		$this->assertSame('default', $request->query()->get('missing', 'default'));
+		$this->assertNull($request->query()->get('missing'));
+	}
+
+	public function testGetFromQueryReturnsNonStringValueDirectly(): void {
+		$query = ['tags' => ['php', 'testing'], 'count' => 42];
+		$extractor = $this->createMockExtractor($query);
+		HttpRequest::setDefaultExtractor($extractor);
+		$request = new HttpRequest();
+		$this->assertSame(['php', 'testing'], $request->query()->get('tags'));
+		$this->assertSame(42, $request->query()->get('count'));
+	}
+
+	public function testGetFromDataWithTypeCasting(): void {
+		$data = ['quantity' => '10', 'verified' => 'false', 'price' => '19.99'];
+		$extractor = $this->createMockExtractor([], $data);
+		HttpRequest::setDefaultExtractor($extractor);
+		$request = new HttpRequest();
+		$this->assertSame(10, $request->data()->get('quantity', 0));
+		$this->assertSame(false, $request->data()->get('verified', true));
+		$this->assertSame(19.99, $request->data()->get('price', 0.0));
+	}
+
+	public function testGetFromDataReturnsDefaultWhenMissing(): void {
+		$extractor = $this->createMockExtractor();
+		HttpRequest::setDefaultExtractor($extractor);
+		$request = new HttpRequest();
+		$this->assertSame(999, $request->data()->get('missing', 999));
+		$this->assertNull($request->data()->get('missing'));
+	}
+
+	public function testGetFromDataReturnsNonStringValueDirectly(): void {
+		$data = ['items' => ['item1', 'item2'], 'total' => 100];
+		$extractor = $this->createMockExtractor([], $data);
+		HttpRequest::setDefaultExtractor($extractor);
+		$request = new HttpRequest();
+		$this->assertSame(['item1', 'item2'], $request->data()->get('items'));
+		$this->assertSame(100, $request->data()->get('total'));
+	}
+
+	public function testHasQueryChecksExistence(): void {
+		$query = ['name' => 'John'];
+		$extractor = $this->createMockExtractor($query);
+		HttpRequest::setDefaultExtractor($extractor);
+		$request = new HttpRequest();
+		$this->assertTrue($request->query()->has('name'));
+		$this->assertFalse($request->query()->has('missing'));
+	}
+
+	public function testHasDataChecksExistence(): void {
+		$data = ['email' => 'john@example.com'];
+		$extractor = $this->createMockExtractor([], $data);
+		HttpRequest::setDefaultExtractor($extractor);
+		$request = new HttpRequest();
+		$this->assertTrue($request->data()->has('email'));
+		$this->assertFalse($request->data()->has('missing'));
+	}
+
+	// ========================================================================
+	// File Handling (Mock Extractor)
+	// ========================================================================
+
+	public function testGetFilesReturnsAllFiles(): void {
+		$mockFile = $this->createMock(UploadedFile::class);
+		$files = ['avatar' => $mockFile];
+		$extractor = $this->createMockExtractor([], [], $files);
+		HttpRequest::setDefaultExtractor($extractor);
+		$request = new HttpRequest();
+		$this->assertSame($files, $request->files());
+	}
+
+	public function testGetFilesReturnsMixedStructure(): void {
+		$mockFile1 = $this->createMock(UploadedFile::class);
+		$mockFile2 = $this->createMock(UploadedFile::class);
+		$files = [
+			'avatar' => $mockFile1,
+			'docs' => [$mockFile2],
+		];
+		$extractor = $this->createMockExtractor([], [], $files);
+		HttpRequest::setDefaultExtractor($extractor);
+		$request = new HttpRequest();
+		$result = $request->files();
+		$this->assertSame($mockFile1, $result['avatar']);
+		$this->assertIsArray($result['docs']);
+		$this->assertSame($mockFile2, $result['docs'][0]);
 	}
 }

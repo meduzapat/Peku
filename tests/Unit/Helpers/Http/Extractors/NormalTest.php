@@ -31,9 +31,10 @@ class NormalTest extends TestCase {
 	private array $tempFiles = [];
 
 	protected function setUp(): void {
-		$_GET   = [];
-		$_POST  = [];
-		$_FILES = [];
+		$_GET    = [];
+		$_POST   = [];
+		$_FILES  = [];
+		$_SERVER = [];
 	}
 
 	protected function tearDown(): void {
@@ -55,15 +56,17 @@ class NormalTest extends TestCase {
 	// ========================================================================
 
 	public function testExtractsGetParameters(): void {
-		$_GET = ['name' => 'John', 'age' => '25', 'active' => 'true'];
+		$data = ['name' => 'John', 'age' => '25', 'active' => 'true'];
+		$_GET = $data;
 		$extractor = new Normal();
-		$this->assertSame($_GET, $extractor->getQuery());
+		$this->assertSame($data, $extractor->getQuery());
 	}
 
 	public function testExtractsPostParameters(): void {
-		$_POST = ['email' => 'john@example.com', 'password' => 'secret123'];
+		$data = ['email' => 'john@example.com', 'password' => 'secret123'];
+		$_POST = $data;
 		$extractor = new Normal();
-		$this->assertSame($_POST, $extractor->getData());
+		$this->assertSame($data, $extractor->getData());
 	}
 
 	public function testExtractsEmptySuperglobals(): void {
@@ -71,6 +74,40 @@ class NormalTest extends TestCase {
 		$this->assertSame([], $extractor->getQuery());
 		$this->assertSame([], $extractor->getData());
 		$this->assertSame([], $extractor->getFiles());
+	}
+
+	public function testExtractsServerVariables(): void {
+		$data = [
+			'REQUEST_METHOD' => 'POST',
+			'REQUEST_URI'    => '/test',
+			'HTTP_HOST'      => 'example.com',
+		];
+		$_SERVER = $data;
+		$extractor = new Normal();
+		$this->assertSame($data, $extractor->getServer());
+	}
+
+	public function testClearsSuperglobalsAfterExtraction(): void {
+		$_GET    = ['test' => 'data'];
+		$_POST   = ['foo' => 'bar'];
+		$_SERVER = ['REQUEST_METHOD' => 'GET'];
+		$_FILES  = [
+			'large_file' => [
+				'name'      => 'huge.zip',
+				'type'      => 'application/zip',
+				'tmp_name'  => '',
+				'error'     => UPLOAD_ERR_INI_SIZE,
+				'size'      => 0,
+				'full_path' => 'huge.zip',
+			],
+		];
+		new Normal();
+
+		// Verify superglobals were cleared for security
+		$this->assertSame([], $_GET);
+		$this->assertSame([], $_POST);
+		$this->assertSame([], $_SERVER);
+		$this->assertSame([], $_FILES);
 	}
 
 	// ========================================================================

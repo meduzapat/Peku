@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Peku\Messages;
 
-use Peku\Abstractions\MixedCollection;
+use Peku\Abstractions\Collection;
 
 /**
  * Request interface for all request implementations
@@ -33,11 +33,11 @@ interface Requestable {
 	/**
 	 * Get request values collection
 	 *
-	 * Provides access to all request data with type casting support.
+	 * Provides read-only access to all request data with type casting support.
 	 *
-	 * @return MixedCollection Request data collection
+	 * @return Collection Request data collection
 	 */
-	public function values(): MixedCollection;
+	public function values(): Collection;
 
 	/**
 	 * Determine desired response format

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Peku\Messages\Http;
 
 use Peku\Messages\{Response, Requestable};
+use Peku\Abstractions\MutableCollection;
 
 /**
  * HTTP response implementation with headers and status code management
@@ -27,88 +28,58 @@ use Peku\Messages\{Response, Requestable};
 class HttpResponse extends Response {
 
 	/**
-	 * @var array<string, string> HTTP headers
+	 * @var MutableCollection HTTP headers
 	 */
-	private array $headers = [];
+	private MutableCollection $headers;
+
+	/**
+	 * @var string HTTP protocol version
+	 */
+	private string $protocol = 'HTTP/1.1';
 
 	/**
 	 * Initialize HTTP response
 	 *
 	 * @param mixed $content Optional content
-	 * @param int   $status  Optional HTTP status code (default: 200)
+	 * @param int   $code    Optional HTTP status code (default: 200)
 	 * @param array $headers Optional initial headers
 	 */
 	public function __construct(
 		mixed $content = '',
-		int   $status  = 200,
+		int   $code    = 200,
 		array $headers = []
 	) {
-		parent::__construct($content, $status);
-		$this->headers = $headers;
+		parent::__construct($content, $code);
+		$this->headers = new MutableCollection($headers);
 	}
 
 	/**
-	 * Set HTTP header
+	 * Set HTTP protocol version
 	 *
-	 * @param string $name  Header name (e.g., 'Content-Type')
-	 * @param string $value Header value
+	 * @param string $protocol Protocol version (e.g., 'HTTP/1.1', 'HTTP/2')
 	 * @return self For method chaining
 	 */
-	public function setHeader(string $name, string $value): static {
-		$this->headers[$name] = $value;
+	public function setProtocol(string $protocol): static {
+		$this->protocol = $protocol;
 		return $this;
 	}
 
 	/**
-	 * Get HTTP header by name (case-insensitive)
+	 * Get HTTP protocol version
 	 *
-	 * @param string $name Header name (e.g., 'Content-Type', 'accept')
-	 * @return string Header value or '' if not found
+	 * @return string Protocol version
 	 */
-	public function getHeader(string $name, string $default = ''): string {
-		$normalized = \ucwords(\strtolower($name), '-');
-		return $this->headers[$normalized] ?? $default;
+	public function getProtocol(): string {
+		return $this->protocol;
 	}
 
 	/**
-	 * Check if header exists
+	 * Get headers collection
 	 *
-	 * @param string $name Header name
-	 * @return bool True if header is set
+	 * @return MutableCollection Headers collection
 	 */
-	public function hasHeader(string $name): bool {
-		return isset($this->headers[$name]);
-	}
-
-	/**
-	 * Remove HTTP header
-	 *
-	 * @param string $name Header name
-	 * @return self For method chaining
-	 */
-	public function removeHeader(string $name): static {
-		unset($this->headers[$name]);
-		return $this;
-	}
-
-	/**
-	 * Get all HTTP headers
-	 *
-	 * @return array<string, string> All headers
-	 */
-	public function getHeaders(): array {
+	public function headers(): MutableCollection {
 		return $this->headers;
-	}
-
-	/**
-	 * Set multiple headers at once
-	 *
-	 * @param array<string, string> $headers Headers to set
-	 * @return self For method chaining
-	 */
-	public function setHeaders(array $headers): static {
-		$this->headers = [...$this->headers, ...$headers];
-		return $this;
 	}
 
 	/**
@@ -120,7 +91,8 @@ class HttpResponse extends Response {
 	 */
 	public function setContentType(string $contentType, string $charset = 'utf-8'): static {
 		$value = $charset !== '' ? "$contentType; charset=$charset" : $contentType;
-		return $this->setHeader('Content-Type', $value);
+		$this->headers->set('Content-Type', $value);
+		return $this;
 	}
 
 	/**
@@ -130,7 +102,8 @@ class HttpResponse extends Response {
 	 * @return self For method chaining
 	 */
 	public function setCacheControl(string $value): static {
-		return $this->setHeader('Cache-Control', $value);
+		$this->headers->set('Cache-Control', $value);
+		return $this;
 	}
 
 	/**
@@ -139,11 +112,12 @@ class HttpResponse extends Response {
 	 * @return self For method chaining
 	 */
 	public function noCache(): static {
-		return $this->setHeaders([
+		$this->headers->merge([
 			'Cache-Control' => 'no-cache, no-store, must-revalidate',
 			'Pragma'        => 'no-cache',
 			'Expires'       => '0',
 		]);
+		return $this;
 	}
 
 	/**
@@ -256,6 +230,12 @@ class HttpResponse extends Response {
 		return headers_sent();
 	}
 
+	/**
+	 * Validate content type
+	 *
+	 * @param mixed $content Content to validate
+	 * @throws \InvalidArgumentException if content invalid
+	 */
 	protected function validate(mixed $content): void {
 		if (\is_string($content) || $content instanceof \Stringable) {
 			return;
@@ -274,9 +254,9 @@ class HttpResponse extends Response {
 		if ($this->areHeadersSent()) {
 			return;
 		}
-		$protocol      = $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.1';
+
 		$statusMessage = $this->getCodeMessage();
-		header("$protocol $this->code $statusMessage", true, $this->code);
+		header("$this->protocol $this->code $statusMessage", true, $this->code);
 
 		foreach ($this->headers as $name => $value) {
 			header("$name: $value", true);

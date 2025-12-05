@@ -16,21 +16,21 @@ namespace Peku\Abstractions;
 use Peku\Helpers\Utils\Data\Values;
 
 /**
- * Read-only collection.
+ * Read-only collection with mixed value support
  *
- * Provides unified interface for accessing associative arrays.
+ * Stores and retrieves associative array data with optional type casting for string values.
  */
 class Collection implements Retrievable, \Countable, \IteratorAggregate {
 
 	/**
-	 * @var array Internal items storage
+	 * @var array<string, mixed> Internal items storage
 	 */
 	protected array $items = [];
 
 	/**
 	 * Initialize collection with items
 	 *
-	 * @param array $items Initial items
+	 * @param array<string, mixed> $items Initial items
 	 */
 	public function __construct(array $items = []) {
 		$this->items = $items;
@@ -39,15 +39,15 @@ class Collection implements Retrievable, \Countable, \IteratorAggregate {
 	/**
 	 * Get value by key with optional type casting
 	 *
-	 * Behavior based on default parameter:
-	 * - No default (null): Returns value as-is or null if missing
-	 * - With default: Uses Values::cast() to convert string values to default's type
-	 * Non-string values:
-	 * - Returned as-is (no casting needed)
+	 * Casting rules:
+	 * 1. Key missing → return default
+	 * 2. Key exists, no default → return value as-is
+	 * 3. Key exists, value non-string → return value as-is
+	 * 4. Key exists, value is string, default provided → cast to default's type
 	 *
 	 * @param string $key Key name
-	 * @param mixed  $default Default value (determines casting type)
-	 * @return mixed casted if default provided or default/null
+	 * @param mixed $default Default value (determines casting type for strings)
+	 * @return mixed Value (casted if string with default) or default
 	 */
 	public function get(string $key, mixed $default = null): mixed {
 		if (!$this->has($key)) {

@@ -14,7 +14,8 @@ declare(strict_types=1);
 namespace Peku\Tests\Unit\Messages\Http;
 
 use PHPUnit\Framework\TestCase;
-use Peku\Messages\Http\HttpResponse;
+use phpmock\phpunit\PHPMock;
+use Peku\Messages\Http\{HttpResponse, HttpRequest};
 
 /**
  * Unit tests for HttpResponse class
@@ -24,6 +25,8 @@ use Peku\Messages\Http\HttpResponse;
  * is tested in ResponseTest.php
  */
 class HttpResponseTest extends TestCase {
+
+	use PHPMock;
 
 	// ========================================================================
 	// Constructor Tests (Consolidated)
@@ -38,12 +41,12 @@ class HttpResponseTest extends TestCase {
 		array $headers,
 		mixed $expectedContent,
 		int   $expectedCode
-		): void {
-			$response = new HttpResponse($content, $code, $headers);
+	): void {
+		$response = new HttpResponse($content, $code, $headers);
 
-			$this->assertSame($expectedContent, $response->getContent());
-			$this->assertSame($expectedCode, $response->getCode());
-			$this->assertSame($headers, $response->getHeaders());
+		$this->assertSame($expectedContent, $response->getContent());
+		$this->assertSame($expectedCode, $response->getCode());
+		$this->assertSame($headers, $response->headers()->all());
 	}
 
 	public static function constructorProvider(): array {
@@ -80,46 +83,81 @@ class HttpResponseTest extends TestCase {
 	}
 
 	// ========================================================================
-	// Header Management Tests
+	// Protocol Management Tests
 	// ========================================================================
 
-	public function testHeaderManagement(): void {
+	public function testDefaultProtocol(): void {
 		$response = new HttpResponse();
-
-		// Set header
-		$response->setHeader('X-Custom', 'value');
-		$this->assertSame('value', $response->getHeader('X-Custom'));
-		$this->assertTrue($response->hasHeader('X-Custom'));
-
-		// Get non-existent
-		$this->assertNull($response->getHeader('X-Missing'));
-		$this->assertFalse($response->hasHeader('X-Missing'));
-
-		// Remove header
-		$response->removeHeader('X-Custom');
-		$this->assertFalse($response->hasHeader('X-Custom'));
+		$this->assertSame('HTTP/1.1', $response->getProtocol());
 	}
 
-	public function testSetHeadersPreservesExisting(): void {
+	public function testSetProtocol(): void {
 		$response = new HttpResponse();
-		$response->setHeader('X-First', 'value1');
+		$response->setProtocol('HTTP/2');
+		$this->assertSame('HTTP/2', $response->getProtocol());
+	}
 
-		$response->setHeaders([
+	public function testInquiryExtractsProtocolFromRequest(): void {
+		$request = $this->createMock(HttpRequest::class);
+		$request->method('getProtocolVersion')->willReturn('2');
+
+		$response = new HttpResponse();
+		$response->inquiry($request);
+
+		$this->assertSame('HTTP/2', $response->getProtocol());
+	}
+
+	// ========================================================================
+	// Header Management Tests - Collection Access
+	// ========================================================================
+
+	public function testHeadersReturnsCollection(): void {
+		$response = new HttpResponse();
+		$this->assertInstanceOf(\Peku\Abstractions\MutableCollection::class, $response->headers());
+	}
+
+	public function testHeadersCollectionOperations(): void {
+		$response = new HttpResponse();
+		$headers  = $response->headers();
+
+		// Set header
+		$headers->set('X-Custom', 'value');
+		$this->assertSame('value', $headers->get('X-Custom'));
+		$this->assertTrue($headers->has('X-Custom'));
+
+		// Get non-existent
+		$this->assertNull($headers->get('X-Missing'));
+		$this->assertSame('default', $headers->get('X-Missing', 'default'));
+		$this->assertFalse($headers->has('X-Missing'));
+
+		// Remove header
+		$headers->remove('X-Custom');
+		$this->assertFalse($headers->has('X-Custom'));
+	}
+
+	public function testHeadersMergePreservesExisting(): void {
+		$response = new HttpResponse();
+		$headers  = $response->headers();
+
+		$headers->set('X-First', 'value1');
+		$headers->merge([
 			'X-Second' => 'value2',
 			'X-First'  => 'overwritten',
 		]);
 
-		$this->assertSame('overwritten', $response->getHeader('X-First'));
-		$this->assertSame('value2', $response->getHeader('X-Second'));
+		$this->assertSame('overwritten', $headers->get('X-First'));
+		$this->assertSame('value2', $headers->get('X-Second'));
 	}
 
 	public function testHeaderNameCaseSensitivity(): void {
 		$response = new HttpResponse();
-		$response->setHeader('Content-Type', 'text/html');
+		$headers  = $response->headers();
+
+		$headers->set('Content-Type', 'text/html');
 
 		// Headers are case-sensitive in storage
-		$this->assertSame('text/html', $response->getHeader('Content-Type'));
-		$this->assertNull($response->getHeader('content-type'));
+		$this->assertSame('text/html', $headers->get('Content-Type'));
+		$this->assertNull($headers->get('content-type'));
 	}
 
 	// ========================================================================
@@ -133,7 +171,7 @@ class HttpResponseTest extends TestCase {
 		$response = new HttpResponse();
 		$response->setContentType($contentType, $charset);
 
-		$this->assertSame($expected, $response->getHeader('Content-Type'));
+		$this->assertSame($expected, $response->headers()->get('Content-Type'));
 	}
 
 	public static function contentTypeProvider(): array {
@@ -160,16 +198,16 @@ class HttpResponseTest extends TestCase {
 		$response = new HttpResponse();
 		$response->setCacheControl('max-age=3600');
 
-		$this->assertSame('max-age=3600', $response->getHeader('Cache-Control'));
+		$this->assertSame('max-age=3600', $response->headers()->get('Cache-Control'));
 	}
 
 	public function testNoCache(): void {
 		$response = new HttpResponse();
 		$response->noCache();
 
-		$this->assertSame('no-cache, no-store, must-revalidate', $response->getHeader('Cache-Control'));
-		$this->assertSame('no-cache', $response->getHeader('Pragma'));
-		$this->assertSame('0', $response->getHeader('Expires'));
+		$this->assertSame('no-cache, no-store, must-revalidate', $response->headers()->get('Cache-Control'));
+		$this->assertSame('no-cache', $response->headers()->get('Pragma'));
+		$this->assertSame('0', $response->headers()->get('Expires'));
 	}
 
 	// ========================================================================
@@ -225,13 +263,13 @@ class HttpResponseTest extends TestCase {
 		mixed  $content,
 		int    $expectedCode,
 		string $expectedMessage
-		): void {
-			$response = HttpResponse::$method($content);
+	): void {
+		$response = HttpResponse::$method($content);
 
-			$this->assertInstanceOf(HttpResponse::class, $response);
-			$this->assertSame($content, $response->getContent());
-			$this->assertSame($expectedCode, $response->getCode());
-			$this->assertSame($expectedMessage, $response->getCodeMessage());
+		$this->assertInstanceOf(HttpResponse::class, $response);
+		$this->assertSame($content, $response->getContent());
+		$this->assertSame($expectedCode, $response->getCode());
+		$this->assertSame($expectedMessage, $response->getCodeMessage());
 	}
 
 	public static function factoryMethodProvider(): array {
@@ -259,27 +297,35 @@ class HttpResponseTest extends TestCase {
 
 	public function testFluentInterfaceChaining(): void {
 		$response = (new HttpResponse())
-		->setContent('test')
-		->setCode(201)
-		->setHeader('X-Custom', 'value')
-		->setContentType('application/json')
-		->setCacheControl('no-cache');
+			->setContent('test')
+			->setCode(201)
+			->setContentType('application/json')
+			->setCacheControl('no-cache')
+			->setProtocol('HTTP/2');
+
+		// Custom headers set via collection
+		$response->headers()->set('X-Custom', 'value');
 
 		$this->assertSame('test', $response->getContent());
 		$this->assertSame(201, $response->getCode());
-		$this->assertSame('value', $response->getHeader('X-Custom'));
-		$this->assertStringContainsString('application/json', $response->getHeader('Content-Type'));
-		$this->assertSame('no-cache', $response->getHeader('Cache-Control'));
+		$this->assertSame('value', $response->headers()->get('X-Custom'));
+		$this->assertStringContainsString('application/json', $response->headers()->get('Content-Type'));
+		$this->assertSame('no-cache', $response->headers()->get('Cache-Control'));
+		$this->assertSame('HTTP/2', $response->getProtocol());
 	}
 
 	public function testFactoryMethodChaining(): void {
 		$response = HttpResponse::ok('Success')
-		->setHeader('X-Version', '1.0')
-		->setContentType('text/plain');
+			->setContentType('text/plain')
+			->setProtocol('HTTP/2');
+
+		// Custom headers set via collection
+		$response->headers()->set('X-Version', '1.0');
 
 		$this->assertSame('Success', $response->getContent());
 		$this->assertSame(200, $response->getCode());
-		$this->assertSame('1.0', $response->getHeader('X-Version'));
+		$this->assertSame('1.0', $response->headers()->get('X-Version'));
+		$this->assertSame('HTTP/2', $response->getProtocol());
 	}
 
 	// ========================================================================
@@ -288,35 +334,15 @@ class HttpResponseTest extends TestCase {
 
 	public function testSendOutputsContent(): void {
 		$response = new HttpResponse('Hello World');
-
-		ob_start();
+		$this->expectOutputString('Hello World');
 		$response->send();
-		$output = ob_get_clean();
-
-		$this->assertSame('Hello World', $output);
-	}
-
-	public function testSendHandlesNonStringContent(): void {
-		$response = new HttpResponse(['key' => 'value']);
-
-		ob_start();
-		$response->send();
-		$output = ob_get_clean();
-
-		// Non-string content is cast to string
-		$this->assertIsString($output);
 	}
 
 	public function testSendCanBeCalledMultipleTimes(): void {
 		$response = new HttpResponse('test');
-
-		ob_start();
+		$this->expectOutputString('testtest');
 		$response->send();
 		$response->send();
-		$output = ob_get_clean();
-
-		$this->assertSame('testtest', $output);
-		$this->assertTrue($response->headersSent());
 	}
 
 	// ========================================================================
@@ -326,32 +352,139 @@ class HttpResponseTest extends TestCase {
 	public function testEmptyContentHandling(): void {
 		$response = new HttpResponse('');
 		$this->assertSame('', $response->getContent());
-
-		ob_start();
+		$this->expectOutputString('');
 		$response->send();
-		$output = ob_get_clean();
-		$this->assertSame('', $output);
 	}
 
 	public function testComplexContentTypes(): void {
 		$response = new HttpResponse();
 
 		$response->setContentType('application/vnd.api+json', 'utf-8');
-		$this->assertSame('application/vnd.api+json; charset=utf-8', $response->getHeader('Content-Type'));
+		$this->assertSame('application/vnd.api+json; charset=utf-8', $response->headers()->get('Content-Type'));
 
 		$response->setContentType('text/html', '');
-		$this->assertSame('text/html', $response->getHeader('Content-Type'));
+		$this->assertSame('text/html', $response->headers()->get('Content-Type'));
 	}
 
 	public function testMultipleHeaderUpdates(): void {
 		$response = new HttpResponse();
+		$headers  = $response->headers();
 
-		$response->setHeaders(['X-First' => 'a', 'X-Second' => 'b']);
-		$response->setHeaders(['X-First' => 'updated', 'X-Third' => 'c']);
+		$headers->merge(['X-First' => 'a', 'X-Second' => 'b']);
+		$headers->merge(['X-First' => 'updated', 'X-Third' => 'c']);
 
-		$headers = $response->getHeaders();
-		$this->assertSame('updated', $headers['X-First']);
-		$this->assertSame('b', $headers['X-Second']);
-		$this->assertSame('c', $headers['X-Third']);
+		$this->assertSame('updated', $headers->get('X-First'));
+		$this->assertSame('b', $headers->get('X-Second'));
+		$this->assertSame('c', $headers->get('X-Third'));
+	}
+
+	// ========================================================================
+	// Validation Tests
+	// ========================================================================
+
+	public function testValidateThrowsForNonStringContent(): void {
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessage('HTTP response content must be string or Stringable');
+
+		new HttpResponse(['array' => 'content']);
+	}
+
+	public function testValidateThrowsWithDebugType(): void {
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessage('Received: array');
+
+		new HttpResponse(['data']);
+	}
+
+	public function testValidateAcceptsStringableObject(): void {
+		$stringable = new class implements \Stringable {
+			public function __toString(): string {
+				return 'stringable';
+			}
+		};
+
+		$response = new HttpResponse($stringable);
+		$this->assertSame($stringable, $response->getContent());
+	}
+
+	// ========================================================================
+	// Header Sending Tests (with Mocks)
+	// ========================================================================
+
+	/**
+	 * @runInSeparateProcess
+	 */
+	public function testSendHeadersSkipsWhenAlreadySent(): void {
+		$headersSent = $this->getFunctionMock('Peku\\Messages\\Http', 'headers_sent');
+		$headersSent->expects($this->once())->willReturn(true);
+
+		$header = $this->getFunctionMock('Peku\\Messages\\Http', 'header');
+		$header->expects($this->never()); // Should not be called
+
+		$response = new HttpResponse('test', 200);
+
+		ob_start();
+		$response->send(); // Triggers sendHeaders()
+		ob_end_clean();
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 */
+	public function testSendHeadersCallsHeaderFunction(): void {
+		$headersSent = $this->getFunctionMock('Peku\\Messages\\Http', 'headers_sent');
+		$headersSent->expects($this->once())->willReturn(false);
+
+		$header = $this->getFunctionMock('Peku\\Messages\\Http', 'header');
+		// Status line + 2 custom headers = 3 calls
+		$header->expects($this->exactly(3));
+
+		$response = new HttpResponse('test', 200);
+		$response->headers()->set('X-Custom', 'value1');
+		$response->headers()->set('X-Test', 'value2');
+
+		ob_start();
+		$response->send();
+		ob_end_clean();
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 */
+	public function testSendHeadersUsesCustomProtocol(): void {
+		$headersSent = $this->getFunctionMock('Peku\\Messages\\Http', 'headers_sent');
+		$headersSent->expects($this->once())->willReturn(false);
+
+		$header = $this->getFunctionMock('Peku\\Messages\\Http', 'header');
+		$header
+			->expects($this->once())
+			->with('HTTP/2.0 404 Not Found', true, 404);
+
+		$response = new HttpResponse('', 404);
+		$response->setProtocol('HTTP/2.0'); // Set protocol explicitly
+
+		ob_start();
+		$response->send();
+		ob_end_clean();
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 */
+	public function testSendHeadersDefaultsToHttp11(): void {
+		$headersSent = $this->getFunctionMock('Peku\\Messages\\Http', 'headers_sent');
+		$headersSent->expects($this->once())->willReturn(false);
+
+		$header = $this->getFunctionMock('Peku\\Messages\\Http', 'header');
+		$header
+			->expects($this->once())
+			->with('HTTP/1.1 500 Internal Server Error', true, 500);
+
+		$response = new HttpResponse('error', 500);
+		// No setProtocol() call - should default to HTTP/1.1
+
+		ob_start();
+		$response->send();
+		ob_end_clean();
 	}
 }

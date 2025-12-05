@@ -19,7 +19,7 @@ use Peku\Abstractions\Collection;
 /**
  * Unit tests for Collection class
  *
- * Tests read-only collection with string values.
+ * Tests read-only collection with mixed values.
  */
 class CollectionTest extends TestCase {
 
@@ -34,7 +34,7 @@ class CollectionTest extends TestCase {
 	}
 
 	public function testConstructorWithItems(): void {
-		$items      = ['name' => 'John', 'age' => '25'];
+		$items      = ['name' => 'John', 'age' => 25];
 		$collection = new Collection($items);
 
 		$this->assertSame($items, $collection->all());
@@ -50,9 +50,9 @@ class CollectionTest extends TestCase {
 		$this->assertSame('John', $collection->get('name'));
 	}
 
-	public function testGetReturnsEmptyStringForMissingKey(): void {
+	public function testGetReturnsNullForMissingKey(): void {
 		$collection = new Collection();
-		$this->assertSame('', $collection->get('missing'));
+		$this->assertNull($collection->get('missing'));
 	}
 
 	public function testGetReturnsDefaultForMissingKey(): void {
@@ -61,42 +61,40 @@ class CollectionTest extends TestCase {
 		$this->assertSame(123, $collection->get('missing', 123));
 	}
 
-	public function testGetWithNullDefaultReturnEmptyString(): void {
-		$collection = new Collection();
-		$this->assertSame('', $collection->get('missing', null));
+	public function testGetCastsStringValueToDefaultType(): void {
+		$collection = new Collection(['age' => '25', 'active' => 'true', 'score' => '98.5']);
+
+		$this->assertSame(25, $collection->get('age', 0));
+		$this->assertSame(true, $collection->get('active', false));
+		$this->assertSame(98.5, $collection->get('score', 0.0));
 	}
 
 	// ========================================================================
-	// get() Tests - Non-String Values (Fallback Behavior)
+	// get() Tests - Non-String Values (Return As-Is)
 	// ========================================================================
 
-	public function testGetReturnsEmptyStringForNonStringValue(): void {
-		$collection = new Collection(['count' => 123, 'active' => true]);
+	public function testGetReturnsNonStringValueAsIs(): void {
+		$collection = new Collection(['count' => 123, 'active' => true, 'tags' => ['php', 'test']]);
 
-		$this->assertSame('', $collection->get('count'));
-		$this->assertSame('', $collection->get('active'));
+		$this->assertSame(123, $collection->get('count'));
+		$this->assertSame(true, $collection->get('active'));
+		$this->assertSame(['php', 'test'], $collection->get('tags'));
 	}
 
-	public function testGetReturnsDefaultForNonStringValue(): void {
-		$collection = new Collection(['count' => 123]);
+	public function testGetReturnsNonStringValueIgnoresDefault(): void {
+		$collection = new Collection(['count' => 123, 'tags' => ['php']]);
 
-		$this->assertSame('default', $collection->get('count', 'default'));
-		$this->assertSame(999, $collection->get('count', 999));
+		// Non-string values returned as-is, default ignored (no casting needed)
+		$this->assertSame(123, $collection->get('count', 'default'));
+		$this->assertSame(['php'], $collection->get('tags', []));
 	}
 
-	public function testGetWithNullValueReturnsDefault(): void {
+	public function testGetReturnsNullValue(): void {
 		$collection = new Collection(['nullable' => null]);
 
-		// null is not a string, so falls back to default
-		$this->assertSame('', $collection->get('nullable'));
-		$this->assertSame('default', $collection->get('nullable', 'default'));
-	}
-
-	public function testGetWithArrayValueReturnsDefault(): void {
-		$collection = new Collection(['data' => ['nested' => 'value']]);
-
-		$this->assertSame('', $collection->get('data'));
-		$this->assertSame('fallback', $collection->get('data', 'fallback'));
+		// null is non-string, returned as-is
+		$this->assertNull($collection->get('nullable'));
+		$this->assertNull($collection->get('nullable', 'default'));
 	}
 
 	// ========================================================================
@@ -114,7 +112,6 @@ class CollectionTest extends TestCase {
 	}
 
 	public function testHasReturnsTrueForNullValue(): void {
-		// array_key_exists checks for key presence, not value
 		$collection = new Collection(['nullable' => null]);
 		$this->assertTrue($collection->has('nullable'));
 	}
@@ -124,7 +121,7 @@ class CollectionTest extends TestCase {
 	// ========================================================================
 
 	public function testAllReturnsAllItems(): void {
-		$items      = ['name' => 'John', 'age' => '25', 'city' => 'NYC'];
+		$items      = ['name' => 'John', 'age' => 25, 'city' => 'NYC'];
 		$collection = new Collection($items);
 
 		$this->assertSame($items, $collection->all());
@@ -140,7 +137,7 @@ class CollectionTest extends TestCase {
 	// ========================================================================
 
 	public function testKeysReturnsAllKeys(): void {
-		$collection = new Collection(['name' => 'John', 'age' => '25']);
+		$collection = new Collection(['name' => 'John', 'age' => 25]);
 		$this->assertSame(['name', 'age'], $collection->keys());
 	}
 
@@ -154,8 +151,8 @@ class CollectionTest extends TestCase {
 	// ========================================================================
 
 	public function testValuesReturnsAllValuesReindexed(): void {
-		$collection = new Collection(['name' => 'John', 'age' => '25']);
-		$this->assertSame(['John', '25'], $collection->values());
+		$collection = new Collection(['name' => 'John', 'age' => 25]);
+		$this->assertSame(['John', 25], $collection->values());
 	}
 
 	public function testValuesReturnsEmptyArray(): void {
@@ -187,7 +184,7 @@ class CollectionTest extends TestCase {
 	// ========================================================================
 
 	public function testFirstReturnsFirstValue(): void {
-		$collection = new Collection(['name' => 'John', 'age' => '25', 'city' => 'NYC']);
+		$collection = new Collection(['name' => 'John', 'age' => 25, 'city' => 'NYC']);
 		$this->assertSame('John', $collection->first());
 	}
 
@@ -211,7 +208,7 @@ class CollectionTest extends TestCase {
 	// ========================================================================
 
 	public function testLastReturnsLastValue(): void {
-		$collection = new Collection(['name' => 'John', 'age' => '25', 'city' => 'NYC']);
+		$collection = new Collection(['name' => 'John', 'age' => 25, 'city' => 'NYC']);
 		$this->assertSame('NYC', $collection->last());
 	}
 
@@ -237,50 +234,43 @@ class CollectionTest extends TestCase {
 	public function testOnlyReturnsRequestedKeys(): void {
 		$collection = new Collection([
 			'name'  => 'John',
-			'age'   => '25',
+			'age'   => 25,
 			'email' => 'john@example.com',
 			'city'  => 'NYC'
 		]);
 
 		$result = $collection->only(['name', 'email']);
 
-		$this->assertCount(2, $result);
-		$this->assertArrayHasKey('name', $result);
-		$this->assertArrayHasKey('email', $result);
-		$this->assertArrayNotHasKey('age', $result);
-		$this->assertArrayNotHasKey('city', $result);
+		$this->assertInstanceOf(Collection::class, $result);
+		$this->assertSame(['name' => 'John', 'email' => 'john@example.com'], $result->all());
 	}
 
 	public function testOnlyOmitsMissingKeys(): void {
 		$collection = new Collection(['name' => 'John']);
 		$result     = $collection->only(['name', 'missing']);
 
-		$this->assertCount(1, $result);
-		$this->assertArrayHasKey('name', $result);
-		$this->assertArrayNotHasKey('missing', $result);
+		$this->assertSame(['name' => 'John'], $result->all());
 	}
 
 	public function testOnlyWithDefaults(): void {
 		$collection = new Collection(['name' => 'John']);
-		$result     = $collection->only(['name', 'age'], ['age' => '0']);
+		$result     = $collection->only(['name', 'age'], ['age' => 0]);
 
-		$this->assertSame(['age' => '0', 'name' => 'John'], $result);
+		$this->assertSame(['age' => 0, 'name' => 'John'], $result->all());
 	}
 
 	public function testOnlyDoesNotOverrideExistingWithDefaults(): void {
-		$collection = new Collection(['name' => 'John', 'age' => '25']);
-		$result     = $collection->only(['name', 'age'], ['age' => '0', 'name' => 'Default']);
+		$collection = new Collection(['name' => 'John', 'age' => 25]);
+		$result     = $collection->only(['name', 'age'], ['age' => 0, 'name' => 'Default']);
 
-		// Existing values should NOT be overridden by defaults
-		$this->assertSame('John', $result['name']);
-		$this->assertSame('25', $result['age']);
+		$this->assertSame(['age' => 25, 'name' => 'John'], $result->all());
 	}
 
 	public function testOnlyWithEmptyKeys(): void {
 		$collection = new Collection(['name' => 'John']);
 		$result     = $collection->only([]);
 
-		$this->assertSame([], $result);
+		$this->assertSame([], $result->all());
 	}
 
 	// ========================================================================
@@ -290,33 +280,30 @@ class CollectionTest extends TestCase {
 	public function testExceptExcludesSpecifiedKeys(): void {
 		$collection = new Collection([
 			'name'     => 'John',
-			'age'      => '25',
+			'age'      => 25,
 			'password' => 'secret',
 			'token'    => 'xyz123'
 		]);
 
 		$result = $collection->except(['password', 'token']);
 
-		$this->assertCount(2, $result);
-		$this->assertArrayHasKey('name', $result);
-		$this->assertArrayHasKey('age', $result);
-		$this->assertArrayNotHasKey('password', $result);
-		$this->assertArrayNotHasKey('token', $result);
+		$this->assertInstanceOf(Collection::class, $result);
+		$this->assertSame(['name' => 'John', 'age' => 25], $result->all());
 	}
 
 	public function testExceptWithNonExistentKeys(): void {
 		$collection = new Collection(['name' => 'John']);
 		$result     = $collection->except(['missing']);
 
-		$this->assertSame(['name' => 'John'], $result);
+		$this->assertSame(['name' => 'John'], $result->all());
 	}
 
 	public function testExceptWithEmptyKeys(): void {
-		$items      = ['name' => 'John', 'age' => '25'];
+		$items      = ['name' => 'John', 'age' => 25];
 		$collection = new Collection($items);
 		$result     = $collection->except([]);
 
-		$this->assertSame($items, $result);
+		$this->assertSame($items, $result->all());
 	}
 
 	// ========================================================================
@@ -324,7 +311,7 @@ class CollectionTest extends TestCase {
 	// ========================================================================
 
 	public function testHasAnyReturnsTrueWhenOneKeyExists(): void {
-		$collection = new Collection(['name' => 'John', 'age' => '25']);
+		$collection = new Collection(['name' => 'John', 'age' => 25]);
 
 		$this->assertTrue($collection->hasAny(['name', 'missing']));
 		$this->assertTrue($collection->hasAny(['missing', 'age']));
@@ -346,14 +333,14 @@ class CollectionTest extends TestCase {
 	// ========================================================================
 
 	public function testHasAllReturnsTrueWhenAllKeysExist(): void {
-		$collection = new Collection(['name' => 'John', 'age' => '25', 'city' => 'NYC']);
+		$collection = new Collection(['name' => 'John', 'age' => 25, 'city' => 'NYC']);
 
 		$this->assertTrue($collection->hasAll(['name', 'age']));
 		$this->assertTrue($collection->hasAll(['name', 'age', 'city']));
 	}
 
 	public function testHasAllReturnsFalseWhenOneKeyMissing(): void {
-		$collection = new Collection(['name' => 'John', 'age' => '25']);
+		$collection = new Collection(['name' => 'John', 'age' => 25]);
 
 		$this->assertFalse($collection->hasAll(['name', 'missing']));
 		$this->assertFalse($collection->hasAll(['name', 'age', 'city']));
@@ -361,7 +348,6 @@ class CollectionTest extends TestCase {
 
 	public function testHasAllWithEmptyKeys(): void {
 		$collection = new Collection(['name' => 'John']);
-		// Empty array should always return true (no keys to check)
 		$this->assertTrue($collection->hasAll([]));
 	}
 
@@ -370,7 +356,7 @@ class CollectionTest extends TestCase {
 	// ========================================================================
 
 	public function testCountReturnsNumberOfItems(): void {
-		$collection = new Collection(['name' => 'John', 'age' => '25', 'city' => 'NYC']);
+		$collection = new Collection(['name' => 'John', 'age' => 25, 'city' => 'NYC']);
 		$this->assertSame(3, $collection->count());
 	}
 
@@ -380,7 +366,7 @@ class CollectionTest extends TestCase {
 	}
 
 	public function testCountWorksWithCountFunction(): void {
-		$collection = new Collection(['a' => '1', 'b' => '2']);
+		$collection = new Collection(['a' => 1, 'b' => 2]);
 		$this->assertSame(2, count($collection));
 	}
 
@@ -389,7 +375,7 @@ class CollectionTest extends TestCase {
 	// ========================================================================
 
 	public function testGetIteratorAllowsForeach(): void {
-		$items      = ['name' => 'John', 'age' => '25'];
+		$items      = ['name' => 'John', 'age' => 25];
 		$collection = new Collection($items);
 
 		$result = [];
@@ -410,28 +396,19 @@ class CollectionTest extends TestCase {
 			'Accept'         => 'application/json',
 			'Authorization'  => 'Bearer token123',
 			'X-Request-Id'   => 'abc-123',
-			'Content-Length' => '1024' // Note: string value
+			'Content-Length' => 1024
 		]);
 
-		// Get specific header
 		$this->assertSame('application/json', $headers->get('Content-Type'));
-
-		// Get with default
 		$this->assertSame('en', $headers->get('Accept-Language', 'en'));
-
-		// Check headers exist
 		$this->assertTrue($headers->has('Authorization'));
 		$this->assertFalse($headers->has('X-Custom'));
 
-		// Get security-sensitive headers only
 		$secure = $headers->except(['Authorization', 'X-Request-Id']);
-		$this->assertArrayNotHasKey('Authorization', $secure);
-		$this->assertArrayHasKey('Content-Type', $secure);
+		$this->assertArrayNotHasKey('Authorization', $secure->all());
+		$this->assertArrayHasKey('Content-Type', $secure->all());
 
-		// Check required headers
 		$this->assertTrue($headers->hasAll(['Content-Type', 'Accept']));
-
-		// Count headers
 		$this->assertSame(5, $headers->count());
 	}
 
@@ -450,11 +427,9 @@ class CollectionTest extends TestCase {
 
 		$httpVars = array_filter(
 			$server->all(),
-			function($key) {
-				return str_starts_with($key, 'HTTP_');
-			},
+			fn($key) => str_starts_with($key, 'HTTP_'),
 			ARRAY_FILTER_USE_KEY
-		);
+			);
 
 		$this->assertCount(1, $httpVars);
 		$this->assertArrayHasKey('HTTP_HOST', $httpVars);

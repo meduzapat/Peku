@@ -14,12 +14,12 @@ declare(strict_types=1);
 namespace Peku\Messages;
 
 use Peku\Helpers\Http\Extractors\Extractable;
-use Peku\Abstractions\MixedCollection;
+use Peku\Abstractions\Collection;
 
 /**
  * Abstract base request providing unified interface for all request types
  *
- * Uses MixedCollection for unified data access with type casting support.
+ * Uses Collection for unified read-only data access with type casting support.
  * Implementations handle context-specific data sources (superglobals, argv, etc.)
  */
 abstract class Request implements Requestable {
@@ -30,9 +30,9 @@ abstract class Request implements Requestable {
 	protected RequestType $type;
 
 	/**
-	 * @var MixedCollection Extracted and sanitized request data with type casting
+	 * @var Collection Extracted and sanitized request data with type casting
 	 */
-	protected MixedCollection $values;
+	protected Collection $values;
 
 	/**
 	 * Default extractor (can be overridden globally)
@@ -72,9 +72,9 @@ abstract class Request implements Requestable {
 	/**
 	 * Get request values collection
 	 *
-	 * @return MixedCollection Request data with type casting support
+	 * @return Collection Request data with type casting support
 	 */
-	public function values(): MixedCollection {
+	public function values(): Collection {
 		return $this->values;
 	}
 
