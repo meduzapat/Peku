@@ -60,14 +60,34 @@ bits — verified: `is_writable()` returns `true` on a `0444` file as root, and 
 succeeds. On CI (`ubuntu-latest`, non-root) these pass. Worth a `markTestSkipped()` guard on
 `posix_getuid() === 0` so the suite is honest wherever it runs.
 
-### B-3 — static analysis still cannot be verified here
+### B-3 — static analysis and style are unverified, and they are CI gates
 
-`phpstan/phpstan` distributes as a phar with no clonable source, and this sandbox cannot
-authenticate to the GitHub API. Every other dev dependency installs fine over git once
-`use-github-api` is disabled. PHPStan and the full `composer analyse` step were therefore not
-run — they need a machine with normal GitHub access. `composer.lock` is deliberately **not**
-committed from here for the same reason: the lock this environment can produce is missing
-phpstan and would be wrong.
+`phpstan/phpstan` distributes as a phar with no clonable source and this sandbox cannot
+authenticate to the GitHub API, so `composer analyse` was never run here. Every other dev
+dependency installs fine over git once `use-github-api` is disabled. **This is a sandbox
+limitation, not a CI one** — GitHub Actions has normal API access and will install phpstan
+without trouble.
+
+That matters, because the workflow runs three unconditional steps:
+
+```yaml
+- run: composer test        # phpunit
+- run: composer analyse     # phpstan analyse src/ --level=8
+- run: composer lint        # phpcs src/
+```
+
+Tooling priority is currently phpunit only, and the lock file stays ignored until things
+stabilise — both deliberate. The consequence to plan around: `analyse` and `lint` still run
+on every PR as hard gates, over 3,100 new lines of source, and **nobody has yet established
+that either passes**. If they fail on the Task 5 PR for reasons that are not a priority yet,
+the PR goes red on noise — and a gate that is red for reasons nobody acts on is a gate people
+learn to ignore, which is the one failure mode worth avoiding while the PR is the only thing
+running tests at all.
+
+Two cheap ways out, either fine: run `composer analyse` and `composer lint` locally once to
+find out where they stand, or mark those two steps `continue-on-error: true` until they are a
+priority. What should not happen is discovering the answer for the first time on the PR that
+lands 20 files.
 
 ## 2. Prerequisite decision — do this before touching the code
 

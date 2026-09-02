@@ -77,7 +77,7 @@ they gate everything else.
 |---|---|---|---|
 | **S-01** | `task_5` branch (§1.2) is unmerged and unreviewed | `git diff origin/develop origin/task_5-RR --stat` | Baseline is undefined; ticketing cannot start |
 | **S-02** ✅ | `phpunit.xml` was **absent from version control and gitignored** | `.gitignore:182`. **Verified:** bare `phpunit` and `phpunit --testsuite=Unit` both exit 1 with a usage dump | **Cleared** — `phpunit.xml.dist` + `tests/Integration/` are now committed. `phpunit.xml` stays ignored, which is correct for the `.dist` convention |
-| **S-03** | `composer.lock` not committed — because it is **gitignored** at `.gitignore:183` | `git check-ignore -v composer.lock` | Committing it requires removing that line first, not just `git add`. Until then the dev toolchain floats within caret ranges and CI can break with no code change — a PHPUnit 11 release alone would break the suite (see `D-19`) |
+| ~~**S-03**~~ | `composer.lock` is **gitignored** at `.gitignore:183` | `git check-ignore -v composer.lock` | **Deliberate, decided 2026-09-02:** leave it uncommitted until the toolchain is stable. Accepted cost: dev dependencies float within caret ranges, so CI can break with no code change — a PHPUnit 11 release would break the suite (see `D-19`). Revisit at the first tagged release |
 | **S-04** | `composer lint` = `phpcs src/`, but `phpcs.xml` declares `<file>src</file><file>tests</file>` | `composer.json` scripts; `phpcs.xml:5-6` | `tests/` is never style-checked despite being in the ruleset |
 | **S-05** | `composer analyse` passes `--level=8` while `phpstan.neon` also sets `level: 8`; `paths:` is `src` only | `composer.json`; `phpstan.neon` | Duplicate config; `tests/` unanalysed. The blanket ignore `#no value type specified in iterable type array#` cancels most of what level 8 buys |
 | **S-06** | CI triggers only on `pull_request` → `develop` | `.github/workflows/ci.yml:3-6` | No push builds, no `main` gating, no scheduled runs. PR #4 (develop→main) merged with no CI |
@@ -195,7 +195,7 @@ first real backlog.**
 | Task | Covers | Done when |
 |---|---|---|
 | **T-01** ✅ **Done** — `phpunit.xml.dist` and `tests/Integration/` committed. `.gitignore:182` needs no change: the `.dist` file is the committed default and a local `phpunit.xml` overrides it | `S-02` | Fresh clone → `composer test`, `test:unit`, `test:integration` all run |
-| **T-02** Remove `composer.lock` from `.gitignore:183`, then commit it; add a scheduled CI job running `--prefer-lowest` and latest to catch drift | `S-03`, `D-19` | CI reproducible; toolchain drift surfaces on a schedule, not in a PR |
+| ~~**T-02**~~ **Deferred by decision.** Lock file stays ignored until the toolchain stabilises. When revisited: remove `.gitignore:183`, commit the lock, add a scheduled job running `--prefer-lowest` and latest to catch drift | `S-03`, `D-19` | — |
 | **T-03** Align quality scripts: `lint` → `phpcs` (ruleset-driven, covers `tests/`), `analyse` → `phpstan analyse` (config-driven), add `tests` to `phpstan.neon` paths | `S-04`, `S-05` | One source of truth per tool; `tests/` covered by both |
 | **T-04** Revisit the blanket `#no value type specified in iterable type array#` ignore — scope it per-file or fix the array shapes | `S-05` | Level 8 means level 8 |
 | **T-05** CI: add `push` triggers for `develop`/`main`, PRs into `main`, and a weekly scheduled run | `S-06` | `main` cannot receive an unbuilt merge |
