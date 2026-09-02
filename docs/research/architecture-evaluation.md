@@ -7,6 +7,22 @@ supersedes — see §0.
 **Verified on:** PHP 8.4.19 CLI, ext `pcntl`/`posix`/`readline`/`pdo_{mysql,pgsql,sqlite}`.
 Probe results are reproduced inline; every empirical claim below was executed, not recalled.
 
+> **Superseded in part — read this first.** This document was written against a CLI-first
+> scope. That has since been reversed: both HTTP and CLI entry points are retained in one
+> architecture ([ADR-0002](../adr/0002-unified-cli-and-http-entry-points.md)), and the
+> Task 5 HTTP work is to be completed and landed rather than parked
+> ([completion plan](../design/task-5-completion-plan.md)).
+>
+> **No longer holds:** §0's "park the HTTP remainder", and §3's framing of CLI as the sole
+> near-term target.
+>
+> **Still holds, and now matters more:** §0's critique of `Responseable::setCode()` — under a
+> unified architecture that seam is exactly where entry-point assumptions leak, and it is
+> resolved by [ADR-0003](../adr/0003-entry-point-io-contracts.md). Also unaffected: §1
+> (risks, autoloader patterns), §2 (package topology, PSR stance, dependency rules), §3.2–3.4
+> (argv parsing, CLI component set, testability discipline — the CLI layer still gets built,
+> just alongside HTTP rather than before it), §4 (documentation), §5 (topology options).
+
 ---
 
 ## 0. Correction to the previous research doc
@@ -14,13 +30,13 @@ Probe results are reproduced inline; every empirical claim below was executed, n
 The earlier baseline put **"land `task_5-Request/Response_Founda`"** on the critical path.
 With HTTP now explicitly out of scope, that is wrong and I am retracting it.
 
-`task_5` is ~7,200 lines across 22 files. Under CLI-first it splits three ways:
+`task_5` is ~7,200 lines across 20 source files and 9 test files. It splits three ways:
 
 | Part | Files | Disposition |
 |---|---|---|
 | `Peku\Abstractions` — `Collection`, `MutableCollection`, `Retrievable`, `Mutable` | 4 | **Keep** — domain-neutral, belongs in `peku/base` |
 | `Peku\Helpers\Files` — `FileInterface`, `File` (641 lines) | 2 | **Keep, review** — CLI needs file I/O |
-| `Peku\Messages\Http`, `Peku\Helpers\Http`, `UploadedFile`, `MessageFactory`, `StatusCodes` | 16 | **Park** on a long-lived branch, do not merge |
+| `Peku\Messages\Http`, `Peku\Helpers\Http`, `UploadedFile`, `MessageFactory`, `StatusCodes` | 14 | ~~Park~~ → **complete and land**, per the decisions above |
 
 Cherry-pick the first two groups onto `develop`; leave the HTTP work on the branch with a
 note saying why. Do not delete it — it is a good draft of a layer you will want later, and

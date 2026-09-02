@@ -4,7 +4,7 @@ Preliminary research for Project Peku: what exists today, what is missing, what 
 decided, and what has to happen before epics and tickets can be written.
 
 **Status:** research output — no framework code changed by this document.
-**Partly superseded:** HTTP is now explicitly out of scope and the project is CLI-first. `S-01`/`T-10` ("land `task_5`") no longer hold — see [`architecture-evaluation.md` §0](architecture-evaluation.md#0-correction-to-the-previous-research-doc). Everything else stands.
+**Partly superseded:** scope now covers both HTTP and CLI entry points ([ADR-0002](../adr/0002-unified-cli-and-http-entry-points.md)). `S-01`/`T-10` are back in force — Task 5 is to be completed and landed, per the [completion plan](../design/task-5-completion-plan.md). Everything else stands.
 **Analysed refs:** `origin/develop` @ `226581f`, `origin/main` @ `77faf60`,
 `origin/task_5-Request/Response_Founda` @ `23cc0be`.
 
