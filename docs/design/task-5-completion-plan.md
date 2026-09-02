@@ -6,26 +6,68 @@ since the branch was opened.
 
 ---
 
-## 1. Two blockers to clear first
+## 1. Blockers — now measured
 
-**B-1 — The work cannot be validated as things stand.** `phpunit.xml` is absent from version
-control and gitignored (`.gitignore:182`), so `composer test` has no suite definition on a
-clean clone, and the `test:unit` / `test:integration` scripts reference testsuites that exist
-nowhere in the repository. Task 5 ships ~4,100 lines of new tests that currently cannot be
-run by anyone who clones the repo. Fixing 7,200 lines of HTTP code without a runnable suite
-and merging it to `develop` is not a defensible sequence.
+### B-1 — no test suite was runnable. **Cleared by this branch.**
 
-*Clear by:* committing `phpunit.xml.dist` with `Unit` and `Integration` testsuites, and
-committing `composer.lock`. Roughly an hour, and it unblocks every subsequent step.
+`phpunit.xml` is gitignored (`.gitignore:182`) and was absent from version control, so
+`composer test` — bare `phpunit` — had no suite to run. Verified, not inferred:
 
-**B-2 — I could not run the toolchain in this environment.** `composer install` fails here
-against the GitHub API (authentication/rate limiting through the sandbox proxy), across
-`--prefer-dist` and `--prefer-source`. PHPUnit, PHPStan and PHPCS were therefore never
-executed against this branch by me. Every finding below is from reading the source or from
-executing individual classes directly against PHP 8.4 — none depends on a suite run, but
-none is a substitute for one either.
+```console
+$ php vendor/bin/phpunit            # exactly what `composer test` runs
+… usage dump …
+EXIT=1
 
-*Consequence:* the fixes below need running on a machine where the toolchain installs.
+$ php vendor/bin/phpunit --testsuite=Unit
+EXIT=1
+```
+
+This branch adds `phpunit.xml.dist` (committed) plus `tests/Integration/` so the
+`Integration` suite has a directory to point at. `phpunit.xml` stays gitignored — that is
+correct for the `.dist` convention: the committed file is the default, a local `phpunit.xml`
+overrides it per developer.
+
+### B-2 — the suite runs now, and `develop` is not green on PHP 8.4
+
+With the config in place, on `origin/develop` at `226581f`, PHP 8.4.19:
+
+| | Tests | Result |
+|---|---|---|
+| Everything except the two classes below | 145 | **OK — 228 assertions, all passing** |
+| `Helpers\Errors\ErrorHandlerTest` | 35 | 4 errors, 16 failures, 12 risky |
+| `Helpers\Loggers\FileTest` | 14 | 2 failures — **environment artifact, not a bug** |
+| **Total** | **194** | **4 errors, 18 failures, 12 risky** |
+
+**`ErrorHandlerTest` — real, and it is the `E_STRICT` defect.** The failures name the
+mechanism directly:
+
+```
+Failed asserting that 'Deprecated [8192]: Constant E_STRICT is deprecated in
+ErrorHandler.php:119' contains "parse error"
+```
+
+The handler resolves `E_STRICT` mid-`match` on PHP 8.4, which emits an `E_DEPRECATED`, which
+the handler then logs — displacing the message the test expected. The 4 errors are the
+companion defect: `MockDelegateFunction::delegate() was not expected to be called more than
+once`, i.e. `handleFatal()` re-logging at shutdown.
+
+These almost certainly pass on PHP 8.3, where `E_STRICT` is not deprecated. *(Inferred — only
+8.4 was available here.)* That is exactly why a CI matrix pinned to 8.3 hides them.
+
+**`FileTest` — not a bug.** `testThrowsExceptionForNonWritableFile` and
+`…NonWritableDirectory` fail because this sandbox runs as uid 0, and root bypasses permission
+bits — verified: `is_writable()` returns `true` on a `0444` file as root, and the write
+succeeds. On CI (`ubuntu-latest`, non-root) these pass. Worth a `markTestSkipped()` guard on
+`posix_getuid() === 0` so the suite is honest wherever it runs.
+
+### B-3 — static analysis still cannot be verified here
+
+`phpstan/phpstan` distributes as a phar with no clonable source, and this sandbox cannot
+authenticate to the GitHub API. Every other dev dependency installs fine over git once
+`use-github-api` is disabled. PHPStan and the full `composer analyse` step were therefore not
+run — they need a machine with normal GitHub access. `composer.lock` is deliberately **not**
+committed from here for the same reason: the lock this environment can produce is missing
+phpstan and would be wrong.
 
 ## 2. Prerequisite decision — do this before touching the code
 
@@ -65,16 +107,24 @@ interact directly with the **M** header finding above.
 
 ## 4. Suggested sequence
 
-1. Clear **B-1** — `phpunit.xml.dist` + `composer.lock` committed. *Nothing else is verifiable until this is done.*
-2. Sign off or reject **ADR-0003**.
-3. Fix `ErrorHandler` (PHP 8.4 + `error_reporting`) and add 8.4 to the CI matrix — it is a prerequisite for the header finding and it makes every subsequent test run trustworthy.
+1. ~~Clear **B-1**~~ — done on this branch. Still outstanding: commit `composer.lock`, generated somewhere with working GitHub access (B-3).
+2. **Fix `ErrorHandler` first.** It is not a prerequisite on paper any more — it is 20 failing tests on PHP 8.4 in code already merged to `develop`. Fix `E_STRICT`, honour `error_reporting()`, stop the shutdown double-log, give `$logger` a default, then add 8.4 to the CI matrix.
+3. Sign off or reject **ADR-0003**.
 4. Apply the **H** fixes, then **M**.
 5. Run `composer test`, `analyse`, `lint` green on 8.3 and 8.4.
 6. Merge to `develop`.
 
-## 5. On merging directly to `develop`
+## 5. How this lands
 
-Two notes, both practical rather than procedural:
+Project workflow: branches are cut from `develop`, work returns via a pull request into
+`develop`, and Pat approves after code review. Nothing is pushed to `develop` directly.
 
-* This session is restricted to pushing to `claude/peku-research-prerequisites-j67igz`. I have not pushed anything to `develop` and will not without explicit instruction. The documents in `docs/` are on that branch and can be merged or cherry-picked at will.
-* Independently of who does it: `develop` is the CI-gated branch, and the CI workflow only triggers on `pull_request` → `develop` (`ci.yml:3-6`). A direct push therefore runs **no** checks at all. For ~7,200 lines including three security-relevant fixes, that is the one place a PR is worth the ceremony — not for review theatre, but because it is currently the only way any test runs.
+This matters more than process hygiene here: `ci.yml` triggers on `pull_request` → `develop`
+(`ci.yml:3-6`) and on nothing else. The PR *is* the only event that runs tests, static
+analysis and the style check. For a change of this size — 20 source files including three
+security-relevant fixes — that gate is the whole safety net.
+
+Two notes on mechanics:
+
+* Branch names must not contain `/` in the task segment. The existing `task_5-Request/Response_Founda` permanently blocks any branch named `task_5-Request` from existing, and truncates awkwardly in every tool that shortens refs. Name the follow-up branch `task_5-request-response` or similar.
+* Because §2 may move `Requestable`/`Responseable` between namespaces, do the ADR-0003 refactor as its own commit within the PR rather than mixing it into the security fixes. It keeps the security review readable, which is the part that most needs reviewing.
