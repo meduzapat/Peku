@@ -96,7 +96,6 @@ class ErrorHandlerTest extends TestCase {
 			'E_USER_ERROR'        => [E_USER_ERROR,        'User Error'],
 			'E_USER_WARNING'      => [E_USER_WARNING,      'User Warning'],
 			'E_USER_NOTICE'       => [E_USER_NOTICE,       'User Notice'],
-			'E_STRICT'            => [E_STRICT,            'Runtime Notice'],
 			'E_RECOVERABLE_ERROR' => [E_RECOVERABLE_ERROR, 'Catchable Fatal Error'],
 			'E_DEPRECATED'        => [E_DEPRECATED,        'Deprecated'],
 			'E_USER_DEPRECATED'   => [E_USER_DEPRECATED,   'User Deprecated'],
@@ -142,7 +141,6 @@ class ErrorHandlerTest extends TestCase {
 		return [
 			'warning level'  => [E_WARNING,           LogLevel::Warning],
 			'notice level'   => [E_NOTICE,            LogLevel::Warning],
-			'strict level'   => [E_STRICT,            LogLevel::Warning],
 			'deprecated'     => [E_DEPRECATED,        LogLevel::Warning],
 			'error level'    => [E_ERROR,             LogLevel::Critical],
 			'parse level'    => [E_PARSE,             LogLevel::Critical],

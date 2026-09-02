@@ -116,7 +116,6 @@ final class ErrorHandler extends StaticUtility {
 			E_COMPILE_WARNING,
 			E_USER_WARNING,
 			E_USER_NOTICE,
-			E_STRICT,
 			E_DEPRECATED,
 			E_USER_DEPRECATED   => LogLevel::Warning,
 
@@ -150,7 +149,6 @@ final class ErrorHandler extends StaticUtility {
 			E_USER_ERROR        => 'User Error',
 			E_USER_WARNING      => 'User Warning',
 			E_USER_NOTICE       => 'User Notice',
-			E_STRICT            => 'Runtime Notice',
 			E_RECOVERABLE_ERROR => 'Catchable Fatal Error',
 			E_DEPRECATED        => 'Deprecated',
 			E_USER_DEPRECATED   => 'User Deprecated',
