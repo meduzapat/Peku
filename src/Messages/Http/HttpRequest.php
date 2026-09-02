@@ -31,14 +31,10 @@ class HttpRequest extends Request {
 	protected static bool $trustProxies = false;
 
 	protected Collection
-		//Server variables (string-only)
-		$server,
-		// HTTP headers (string-only)
-		$headers,
-		// Query parameters (GET) with type casting
-		$query,
-		// Body parameters (POST/PUT/PATCH) with type casting
-		$data;
+		$server,  // Server variables (string-only)
+		$headers, // HTTP headers (string-only)
+		$query,   // Query parameters (GET) with type casting
+		$data;    // Body parameters (POST/PUT/PATCH) with type casting
 
 	/**
 	 * Uploaded files (raw array - contains UploadedFile objects)
@@ -128,10 +124,6 @@ class HttpRequest extends Request {
 	 * - Rejection handling (q=0)
 	 *
 	 * @return array Sorted array of MIME types (best first)
-	 *
-	 * @example
-	 * // Accept: text/html;q=0.9, application/json
-	 * $request->accepts(); // ['application/json', 'text/html']
 	 */
 	public function accepts(): array {
 		$acceptHeader = $this->headers->get('Accept', '');
@@ -143,7 +135,7 @@ class HttpRequest extends Request {
 		$parsed   = [];
 		$segments = explode(',', $acceptHeader);
 
-		foreach ($segments as $segment) {
+		foreach ($segments as $index => $segment) {
 			$segment = trim($segment);
 			if ($segment === '') {
 				continue;
@@ -155,10 +147,18 @@ class HttpRequest extends Request {
 
 			// Extract quality (q parameter) - default 1.0
 			$quality = 1.0;
-			$matches = null;
+			$matches = [];
 			foreach (array_slice($parts, 1) as $param) {
-				if (preg_match('/^\s*q\s*=\s*([\d.]+)\s*$/i', $param, $matches)) {
-					$quality = (float)$matches[1];
+				$param = trim($param);
+				if (0 === stripos($param, 'q=')) {
+					$qValueStr = trim(substr($param, strpos($param, '=') + 1));
+					if (preg_match('/^(0(\.\d{0,3})?|1(\.0{0,3})?)$/', $qValueStr)) {
+						$quality = (float) $qValueStr;
+					}
+					else {
+						// Invalid qvalue: reject
+						$quality = 0.0;
+					}
 					// Clamp to valid range per RFC 9110 (0.0 - 1.0)
 					$quality = max(0.0, min(1.0, $quality));
 					break;
@@ -173,24 +173,25 @@ class HttpRequest extends Request {
 			// Calculate specificity for precedence (higher = more specific)
 			// Per RFC 9110: exact type > type wildcard > full wildcard
 			$specificity = match (true) {
-				$mime === '*/*'              => 1,  // Full wildcard (lowest)
-				str_ends_with($mime, '/*')   => 2,  // Type wildcard (medium)
-				default                      => 3,  // Exact type/subtype (highest)
+				$mime === '*/*'            => 1,  // Full wildcard (lowest)
+				str_ends_with($mime, '/*') => 2,  // Type wildcard (medium)
+				default                    => 3,  // Exact type/subtype (highest)
 			};
 
 			$parsed[] = [
 				'mime'        => $mime,
 				'quality'     => $quality,
 				'specificity' => $specificity,
+				'order'       => $index,  // Tie-breaker: original position
 			];
 		}
 
 		// Empty or all rejected - default to text/html
 		if (empty($parsed)) {
-			return ['text/html'];
+			return ['text/html']; // Or return [] to signal no acceptable types
 		}
 
-		// Sort by: 1) quality DESC, 2) specificity DESC
+		// Sort by: 1) quality DESC, 2) specificity DESC, 3) order ASC (leftmost first)
 		usort($parsed, function($a, $b) {
 			// Compare quality first (higher is better)
 			$qualityDiff = $b['quality'] <=> $a['quality'];
@@ -199,7 +200,13 @@ class HttpRequest extends Request {
 			}
 
 			// If equal quality, compare specificity (higher is better)
-			return $b['specificity'] <=> $a['specificity'];
+			$specDiff = $b['specificity'] <=> $a['specificity'];
+			if ($specDiff !== 0) {
+				return $specDiff;
+			}
+
+			// If equal, compare original order (lower index is better)
+			return $a['order'] <=> $b['order'];
 		});
 
 			// Extract sorted MIME types

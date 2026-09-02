@@ -53,7 +53,7 @@ class HttpRequestTest extends TestCase {
 		array $data   = [],
 		array $files  = [],
 		array $server = []
-		): Extractor {
+	): Extractor {
 		return new class($query, $data, $files, $server) extends Extractor {
 			public function __construct(array $query, array $data, array $files, array $server) {
 				// Don't call parent - we're manually setting protected properties
@@ -306,12 +306,12 @@ class HttpRequestTest extends TestCase {
 	}
 
 	public function testGetHeadersExtractsAllHttpHeaders(): void {
-		$_SERVER['HTTP_ACCEPT'] = 'application/json';
-		$_SERVER['HTTP_USER_AGENT'] = 'TestAgent/1.0';
+		$_SERVER['HTTP_ACCEPT']        = 'application/json';
+		$_SERVER['HTTP_USER_AGENT']    = 'TestAgent/1.0';
 		$_SERVER['HTTP_AUTHORIZATION'] = 'Bearer token123';
-		$_SERVER['CONTENT_TYPE'] = 'application/json';
-		$_SERVER['CONTENT_LENGTH'] = '1024';
-		$_SERVER['OTHER_VAR'] = 'ignored';
+		$_SERVER['CONTENT_TYPE']       = 'application/json';
+		$_SERVER['CONTENT_LENGTH']     = '1024';
+		$_SERVER['OTHER_VAR']          = 'ignored';
 		$request = new HttpRequest();
 		$headers = $request->headers()->all();
 		$this->assertArrayHasKey('Accept', $headers);
@@ -385,6 +385,14 @@ class HttpRequestTest extends TestCase {
 		// json(q=1.0) > text/html(q=1.0, higher specificity) > text/*(q=0.8) > */*(q=0.5)
 		$expected = ['text/html', 'application/json', 'text/*', '*/*'];
 		$this->assertSame($expected, $request->accepts());
+	}
+
+	public function testAcceptsWithInvalidQuality(): void {
+		$_SERVER['HTTP_ACCEPT'] = 'text/html;q=ABc, application/json;q=None';
+		$request = new HttpRequest();
+
+		// All rejected - defaults to text/html
+		$this->assertSame(['text/html'], $request->accepts());
 	}
 
 	// ========================================================================
