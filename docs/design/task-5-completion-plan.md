@@ -134,6 +134,28 @@ if (\posix_getuid() === 0) {
 }
 ```
 
+### ErrorHandler — fixed, verified on 8.3 and 8.4
+
+Confirmed green on both versions (8.4 here, 8.3 by Pat). Three defects closed:
+
+| Defect | Fix |
+|---|---|
+| `@`-suppressed errors were logged | `handleError()` now honours `error_reporting()`. This forced dropping `error_reporting(0)` from `initialize()` — you cannot respect a mask you just zeroed, and zeroing the host's error config is not a library's call. `initialize()` takes `int $level = E_ALL` |
+| Shutdown double-log | Root cause was `return false`, which hands the error to PHP's internal handler, which records it as the last error so `handleFatal()` logs it again. Verified: returning `true` leaves `error_get_last()` `NULL`. This also explains why `error_clear_last()` never worked — the internal handler ran after it. Both removed |
+| `E_STRICT` deprecation on 8.4 | Branch deleted. Nothing can raise errno 2048 on PHP 8 — verified `E_ALL & E_STRICT === 0` on 8.4, and `trigger_error()` rejects it. The reference was the error source, not a guard against one |
+
+`handleFatal()` now owns exactly what `set_error_handler()` can never receive
+(`UNCATCHABLE = E_ERROR | E_PARSE | E_CORE_ERROR | E_CORE_WARNING | E_COMPILE_ERROR |
+E_COMPILE_WARNING`), which makes a double-log structurally impossible rather than merely
+avoided.
+
+**Two decisions recorded, because a future reader will ask:**
+
+1. **`handleError()` returns `true`, not `false`.** This is a deliberate contract change — the previous test asserted `assertFalse` with the comment *"Will always return false."* Returning `true` is what stops the double-log. Reverting it means solving that defect another way.
+2. **`error_get_last()` must stay unqualified.** php-mock intercepts only unqualified calls; writing `\error_get_last()` silently breaks four tests. The line carries a comment saying so.
+
+Not yet on the branch at `094f550` — applied locally, pending commit.
+
 ### The bug the suite does not catch
 
 `MessageFactory::createResponse()` **throws a `TypeError` on every call.** Verified by
