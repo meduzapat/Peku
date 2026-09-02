@@ -103,6 +103,66 @@ things on this branch change shape:
 
 Doing the fix work before this decision means doing parts of it twice.
 
+## 2b. Verified state of the branch at `094f550`
+
+Run here on PHP 8.4.19, as root, with `phpunit.xml.dist`:
+
+```
+Tests: 544, Assertions: 876, Errors: 4, Failures: 32, Risky: 12
+```
+
+544 matches the count from Pat's PHP 8.3 run, which is fully green. The entire delta is
+explained by two causes, neither of which is new work on this branch:
+
+| Cause | Count | Real? |
+|---|---|---|
+| `ErrorHandlerTest` on PHP 8.4 — the `E_STRICT` defect | 4 errors, 16 failures, 12 risky | **Yes.** Pre-existing on `develop` |
+| Permission tests running as uid 0 | 16 failures | **No** — environment |
+
+The 16 permission failures are `Helpers\Files\FileTest` (13), `Loggers\FileTest` (2) and
+`UploadedFileTest::testMoveToThrowsOnMkdirFailure` (1). Root bypasses permission bits, so the
+expected `FileException` never fires. Verified directly: `is_writable()` returns `true` on a
+`0444` file as uid 0, and the write succeeds.
+
+They pass on GitHub Actions (`ubuntu-latest` runs as non-root) and on Pat's machine. They
+would fail in any root container, which is a common CI shape. A guard makes them honest
+wherever they run:
+
+```php
+if (\posix_getuid() === 0) {
+    $this->markTestSkipped('Permission checks are meaningless as root');
+}
+```
+
+### The bug the suite does not catch
+
+`MessageFactory::createResponse()` **throws a `TypeError` on every call.** Verified by
+execution:
+
+```
+TypeError: Peku\Messages\Http\HttpResponse::__construct(): Argument #3 ($headers)
+must be of type array, string given, called in .../MessageFactory.php on line 92
+```
+
+`MessageFactory.php:92` passes the negotiated MIME string into a parameter declared
+`array $headers`. `grep -rl MessageFactory tests/` returns nothing — **the class that wires
+request to response has no tests at all**, which is exactly why 544 green tests say nothing
+about it.
+
+The fix is not mechanical, because it exposes a contract problem. `createResponse()` is typed
+against `Responseable`, but what it needs to do — set a Content-Type — is an HTTP concept that
+`Responseable` does not carry, since it is meant to serve CLI too. Two options:
+
+| | Change | Trade-off |
+|---|---|---|
+| **A** | `new $class($content, $code, ['Content-Type' => $mime])` | Type-safe today, no contract change. Loses the `; charset=utf-8` that `setContentType()` adds — and charset omission has real security consequences |
+| **B** | Construct, then `$response->setContentType($mime)` | Preserves charset and uses the existing API. Requires `setContentType()` on the contract, or an `instanceof` check that the "no defensive checks" rule would reject |
+
+**B is the honest fix, and it points at [ADR-0003](../adr/0003-entry-point-io-contracts.md):**
+if `Responseable` were simply the HTTP response contract rather than a shared HTTP/CLI one,
+`setContentType()` would live on it and this would not be a decision at all. The `TypeError`
+is the first concrete cost of the shared abstraction, not a typo.
+
 ## 3. Fix list
 
 Severity: **H** blocks merge · **M** should land with it · **L** follow-up ticket.
