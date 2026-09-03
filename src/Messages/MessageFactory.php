@@ -84,12 +84,11 @@ class MessageFactory {
 		mixed $content = '',
 		int $code = 200
 	): Responseable {
-		// Get preferred MIME type from request
-		$mime = $request->wants();
-		$class = self::getResponseClass($mime);
+		// The negotiated type selects the class; the response derives its own
+		// Content-Type from the request in inquiry().
+		$class = self::getResponseClass($request->wants());
 
-		// Create response with MIME type
-		$response = new $class($content, $code, $mime);
+		$response = new $class($content, $code);
 		$response->inquiry($request);
 		return $response;
 	}

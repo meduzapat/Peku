@@ -216,6 +216,8 @@ class HttpResponse extends Response {
 	 * @see \Peku\Messages\Responseable::inquiry()
 	 */
 	public function inquiry(Requestable $request): void {
+		$this->setContentType($request->wants());
+
 		if ($request instanceof HttpRequest) {
 			$this->setProtocol('HTTP/' . $request->getProtocolVersion());
 		}
