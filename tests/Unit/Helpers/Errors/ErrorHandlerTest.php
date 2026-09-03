@@ -178,8 +178,8 @@ class ErrorHandlerTest extends TestCase {
 			);
 
 		ErrorHandler::initialize($this->mockLogger);
-		// Will always return false.
-		$this->assertFalse(ErrorHandler::handleError(E_WARNING, 'Test', __FILE__, __LINE__));
+		// Always claims the error, so PHP's internal handler does not also record it.
+		$this->assertTrue(ErrorHandler::handleError(E_WARNING, 'Test', __FILE__, __LINE__));
 	}
 
 	// ========================================================================

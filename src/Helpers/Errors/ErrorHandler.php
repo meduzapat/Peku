@@ -28,16 +28,23 @@ use Peku\Helpers\Utils\StaticUtility;
  */
 final class ErrorHandler extends StaticUtility {
 
+	/**
+	 * Error levels set_error_handler() can never receive. Only these can still be
+	 * pending at shutdown, so only these are handleFatal()'s responsibility.
+	 */
+	private const UNCATCHABLE = E_ERROR | E_PARSE | E_CORE_ERROR | E_CORE_WARNING | E_COMPILE_ERROR | E_COMPILE_WARNING;
+
 	private static Loggeable $logger;
 
 	/**
 	 * Initialize error handling and set logger
 	 *
 	 * @param Loggeable|null $logger Logger instance (defaults to Noop)
+	 * @param int            $level  Levels to report; the handler honours this mask
 	 */
-	public static function initialize(?Loggeable $logger = null): void {
+	public static function initialize(?Loggeable $logger = null, int $level = E_ALL): void {
 		self::$logger = $logger ?? new Noop();
-		\error_reporting(0);
+		\error_reporting($level);
 		\set_error_handler([self::class, 'handleError']);
 		\set_exception_handler([self::class, 'handleException']);
 		\register_shutdown_function([self::class, 'handleFatal']);
@@ -58,20 +65,16 @@ final class ErrorHandler extends StaticUtility {
 		int $errline
 	): bool {
 
-		$errorType = self::getErrorTypeName($errno);
-		$logLevel  = self::mapErrorToLogLevel($errno);
+		// Masked by error_reporting() or silenced with @. The caller said it does not
+		// want this reported, so reporting it anyway would be wrong.
+		if ((\error_reporting() & $errno) !== 0) {
+			self::report($errno, $errstr, $errfile, $errline);
+		}
 
-		$message = \sprintf(
-			'%s [%d]: %s in %s:%d',
-			$errorType,
-			$errno,
-			$errstr,
-			\basename($errfile),
-			$errline
-		);
-		self::$logger->log($message, $logLevel);
-		error_clear_last();
-		return false;
+		// Always claim the error. Returning false hands it to PHP's internal handler,
+		// which records it as the last error and makes handleFatal() log it a second
+		// time at shutdown.
+		return true;
 	}
 
 	/**
@@ -88,18 +91,47 @@ final class ErrorHandler extends StaticUtility {
 	 */
 	public static function handleFatal(): void {
 
-		$error = error_get_last();
+		$error = error_get_last();  // unqualified: php-mock intercepts only unqualified calls
 
-		if ($error === null) {
+		// Anything handleError() could receive, it already reported. Only the
+		// uncatchable levels are still outstanding here.
+		if ($error === null || ($error['type'] & self::UNCATCHABLE) === 0) {
 			return;
 		}
 
-		self::handleError(
+		// Reported unconditionally: a fatal is worth recording whatever the mask says.
+		self::report(
 			$error['type'],
 			$error['message'],
 			$error['file'],
 			$error['line']
 		);
+	}
+
+	/**
+	 * Format and write one error to the log
+	 *
+	 * @param int    $errno   Error level
+	 * @param string $errstr  Error message
+	 * @param string $errfile File where the error occurred
+	 * @param int    $errline Line number
+	 */
+	private static function report(
+		int $errno,
+		string $errstr,
+		string $errfile,
+		int $errline
+	): void {
+
+		$message = \sprintf(
+			'%s [%d]: %s in %s:%d',
+			self::getErrorTypeName($errno),
+			$errno,
+			$errstr,
+			\basename($errfile),
+			$errline
+		);
+		self::$logger->log($message, self::mapErrorToLogLevel($errno));
 	}
 
 	/**
