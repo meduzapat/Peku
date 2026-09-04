@@ -15,12 +15,13 @@ namespace Peku\Tests\Unit\Messages;
 
 use phpmock\phpunit\PHPMock;
 use PHPUnit\Framework\TestCase;
-use Peku\Abstractions\Collection;
+use Peku\Abstractions\{Collection, MutableCollection};
 use Peku\Messages\MessageFactory;
 use Peku\Messages\Requestable;
 use Peku\Messages\RequestType;
-use Peku\Messages\Http\HttpRequest;
-use Peku\Messages\Http\HttpResponse;
+use Peku\Messages\Http\{HttpRequest, HttpResponse, AllowedHost, TrustedHosts};
+use Peku\Helpers\Http\Extractors\Normal;
+use Peku\Validation\UntrustedRequestException;
 
 /**
  * Unit tests for MessageFactory
@@ -60,7 +61,19 @@ class MessageFactoryTest extends TestCase {
 	 * createRequest() Tests *
 	 *************************/
 
-	public function testCreateRequestBuildsHttpRequestOutsideCli(): void {
+	private function permissiveRules(string $host = 'peku.dev'): MutableCollection {
+		return (new MutableCollection())->set('allowedHost', new AllowedHost(TrustedHosts::only($host)));
+	}
+
+	/**
+	 * Sets up the environment for the HTTP branch of createRequest(): mocks
+	 * php_sapi_name() to report non-CLI, and (re)installs the real extractor
+	 * after $_SERVER is populated - Normal::initialize() snapshots $_SERVER at
+	 * construction, and Request::$extractor is static, so a mock extractor
+	 * left behind by an unrelated test elsewhere in the suite would otherwise
+	 * still be active here.
+	 */
+	private function prepareHttpEnvironment(string $host = 'peku.dev'): void {
 		$this->getFunctionMock('Peku\\Messages', 'php_sapi_name')
 			->expects($this->once())
 			->willReturn('fpm-fcgi');
@@ -68,8 +81,47 @@ class MessageFactoryTest extends TestCase {
 		$_SERVER['REQUEST_METHOD'] = 'GET';
 		$_SERVER['REQUEST_URI']    = '/';
 		$_SERVER['HTTP_ACCEPT']    = 'text/html';
+		$_SERVER['HTTP_HOST']      = $host;
+		HttpRequest::setDefaultExtractor(new Normal());
+	}
 
-		$this->assertInstanceOf(HttpRequest::class, MessageFactory::createRequest());
+	public function testCreateRequestBuildsHttpRequestOutsideCli(): void {
+		$this->prepareHttpEnvironment();
+
+		$request = MessageFactory::createRequest($this->permissiveRules());
+
+		$this->assertInstanceOf(HttpRequest::class, $request);
+	}
+
+	public function testCreateRequestDefaultsToHttpRequestsFailClosedRules(): void {
+		$this->prepareHttpEnvironment();
+
+		// No $rules argument - proves the parameter's default (null) really
+		// reaches HttpRequest rather than MessageFactory silently supplying
+		// something permissive of its own.
+		$this->expectException(UntrustedRequestException::class);
+		$this->expectExceptionMessage('No trusted hosts configured');
+		MessageFactory::createRequest();
+	}
+
+	public function testCreateRequestPassesGivenRulesThrough(): void {
+		$this->prepareHttpEnvironment('peku.dev');
+
+		/** @var HttpRequest $request */
+		$request = MessageFactory::createRequest($this->permissiveRules('peku.dev'));
+
+		$this->assertSame('peku.dev', $request->getHost());
+	}
+
+	public function testCreateRequestEnforcesTheRulesItWasGiven(): void {
+		$this->prepareHttpEnvironment('evil.com');
+
+		// The allowlist here does not match the request's actual host - proves
+		// the rules passed in are the ones enforced, not a default substituted
+		// silently in their place.
+		$this->expectException(UntrustedRequestException::class);
+		$this->expectExceptionMessage("Host 'evil.com' is not in the trusted allowlist");
+		MessageFactory::createRequest($this->permissiveRules('peku.dev'));
 	}
 
 	/**************************

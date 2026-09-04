@@ -16,6 +16,7 @@ namespace Peku\Messages;
 use Peku\Messages\Cli\CliRequest;
 use Peku\Messages\Http\HttpRequest;
 use Peku\Messages\Http\HttpResponse;
+use Peku\Abstractions\MutableCollection;
 
 /**
  * Message factory for creating request and response objects
@@ -60,10 +61,15 @@ class MessageFactory {
 	 * Create request from current environment
 	 *
 	 * Auto-detects CLI vs HTTP context.
+	 *
+	 * @param MutableCollection|null $rules Rules to enforce on the HttpRequest branch
+	 *                                      (e.g. allowedHost). Ignored under CLI.
+	 *                                      Omit to get HttpRequest's own fail-closed
+	 *                                      default.
 	 * @TODO: detect other request types.
 	 */
-	public static function createRequest(): Requestable {
-		return php_sapi_name() === 'cli' ? new CliRequest() : new HttpRequest();
+	public static function createRequest(?MutableCollection $rules = null): Requestable {
+		return php_sapi_name() === 'cli' ? new CliRequest() : new HttpRequest($rules);
 	}
 
 	/**
