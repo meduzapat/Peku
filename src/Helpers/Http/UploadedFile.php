@@ -97,9 +97,9 @@ class UploadedFile {
 		$this->clientPath     = $clientPath ?: $clientFilename;
 	}
 
-	// ========================================================================
-	// Health & Status
-	// ========================================================================
+	/*******************
+	 * Health & Status *
+	 *******************/
 
 	/**
 	 * Check if file is available for operations
@@ -131,9 +131,9 @@ class UploadedFile {
 		return $this->error !== UPLOAD_ERR_OK;
 	}
 
-	// ========================================================================
-	// Metadata Access (always safe - no file operations)
-	// ========================================================================
+	/******************************************************
+	 * Metadata Access (always safe - no file operations) *
+	 ******************************************************/
 
 	/**
 	 * Get original filename from client
@@ -158,9 +158,9 @@ class UploadedFile {
 		return $this->clientPath;
 	}
 
-	// ========================================================================
-	// File Access (returns null if unavailable)
-	// ========================================================================
+	/*********************************************
+	 * File Access (returns null if unavailable) *
+	 *********************************************/
 
 	/**
 	 * Get underlying File for manual operations
@@ -179,9 +179,9 @@ class UploadedFile {
 		return $this->checkHealth() ? $this->file : null;
 	}
 
-	// ========================================================================
-	// Operations (throw on failure)
-	// ========================================================================
+	/*********************************
+	 * Operations (throw on failure) *
+	 *********************************/
 
 	/**
 	 * Move file preserving client path/filename structure
@@ -227,9 +227,9 @@ class UploadedFile {
 		}
 	}
 
-	// ========================================================================
-	// Internal Health Management
-	// ========================================================================
+	/******************************
+	 * Internal Health Management *
+	 ******************************/
 
 	/**
 	 * Check file health and update state accordingly

@@ -52,9 +52,9 @@ class UploadedFileTest extends TestCase {
 		return $mock;
 	}
 
-	// ========================================================================
-	// Constructor & Basic State Tests
-	// ========================================================================
+	/***********************************
+	 * Constructor & Basic State Tests *
+	 ***********************************/
 
 	public function testConstructorWithSuccessfulUpload(): void {
 		$file   = $this->createMockFile(true);
@@ -90,9 +90,9 @@ class UploadedFileTest extends TestCase {
 		}
 	}
 
-	// ========================================================================
-	// Metadata Access Tests
-	// ========================================================================
+	/*************************
+	 * Metadata Access Tests *
+	 *************************/
 
 	public function testGetClientFilename(): void {
 		$file   = $this->createMockFile();
@@ -124,9 +124,9 @@ class UploadedFileTest extends TestCase {
 		$this->assertSame('dir/test.txt', $upload->getClientPath());
 	}
 
-	// ========================================================================
-	// Health Checking Tests
-	// ========================================================================
+	/*************************
+	 * Health Checking Tests *
+	 *************************/
 
 	public function testIsAvailableReturnsTrueForHealthyFile(): void {
 		$file   = $this->createMockFile(true);
@@ -164,9 +164,9 @@ class UploadedFileTest extends TestCase {
 		$this->assertSame(100, $upload->getError()); // ERROR_FILE_DELETED
 	}
 
-	// ========================================================================
-	// getFile() Tests
-	// ========================================================================
+	/*******************
+	 * getFile() Tests *
+	 *******************/
 
 	public function testGetFileReturnsFileWhenAvailable(): void {
 		$file   = $this->createMockFile(true);
@@ -188,9 +188,9 @@ class UploadedFileTest extends TestCase {
 		$this->assertNull($upload->getFile());
 	}
 
-	// ========================================================================
-	// moveTo() Tests - Basic
-	// ========================================================================
+	/**************************
+	 * moveTo() Tests - Basic *
+	 **************************/
 
 	public function testMoveToThrowsWhenFileUnavailable(): void {
 		$upload = new UploadedFile(null, UPLOAD_ERR_NO_FILE, 'test.txt', 'test.txt');
@@ -291,9 +291,9 @@ class UploadedFileTest extends TestCase {
 		$upload->moveTo($this->tempDir);
 	}
 
-	// ========================================================================
-	// Health State Transitions
-	// ========================================================================
+	/****************************
+	 * Health State Transitions *
+	 ****************************/
 
 	public function testHealthCheckUpdatesErrorState(): void {
 		$file = $this->createMockFile(false);
@@ -317,9 +317,9 @@ class UploadedFileTest extends TestCase {
 		$this->assertNull($upload->getFile());
 	}
 
-	// ========================================================================
-	// Error Message Tests
-	// ========================================================================
+	/***********************
+	 * Error Message Tests *
+	 ***********************/
 
 	public function testMoveToThrowsWithNoTmpDirMessage(): void {
 		$file = new UploadedFile(null, UPLOAD_ERR_NO_TMP_DIR, 'test.txt');

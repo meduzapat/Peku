@@ -27,9 +27,9 @@ namespace Peku\Helpers\Files;
  */
 class File implements FileInterface {
 
-	// ========================================================================
-	// Permission Presets
-	// ========================================================================
+	/**********************
+	 * Permission Presets *
+	 **********************/
 
 	/**
 	 * Private file - owner read/write only (rw-------)
@@ -55,9 +55,9 @@ class File implements FileInterface {
 	 */
 	public const PUBLIC = 0666;
 
-	// ========================================================================
-	// Properties
-	// ========================================================================
+	/**************
+	 * Properties *
+	 **************/
 
 	/**
 	 * Registry of managed files: path → File instance
@@ -78,9 +78,9 @@ class File implements FileInterface {
 		self::$instances[$path] = $this;
 	}
 
-	// ========================================================================
-	// Static Factory & Registry
-	// ========================================================================
+	/*****************************
+	 * Static Factory & Registry *
+	 *****************************/
 
 	/**
 	 * Get managed file reference (returns existing or creates new)
@@ -129,9 +129,9 @@ class File implements FileInterface {
 		return new static($path);
 	}
 
-	// ========================================================================
-	// Factory Methods
-	// ========================================================================
+	/*******************
+	 * Factory Methods *
+	 *******************/
 
 	/**
 	 * Create new file with contents
@@ -165,9 +165,9 @@ class File implements FileInterface {
 		return self::manage($path);
 	}
 
-	// ========================================================================
-	// Identity & Validation
-	// ========================================================================
+	/*************************
+	 * Identity & Validation *
+	 *************************/
 
 	/**
 	 * @see FileInterface::isValid()
@@ -186,9 +186,9 @@ class File implements FileInterface {
 		return $this->path;
 	}
 
-	// ========================================================================
-	// Read Operations
-	// ========================================================================
+	/*******************
+	 * Read Operations *
+	 *******************/
 
 	/**
 	 * @see FileInterface::getName()
@@ -330,9 +330,9 @@ class File implements FileInterface {
 		clearstatcache(true, $path);
 	}
 
-	// ========================================================================
-	// File Operations
-	// ========================================================================
+	/*******************
+	 * File Operations *
+	 *******************/
 
 	/**
 	 * @see FileInterface::copy()
@@ -393,9 +393,9 @@ class File implements FileInterface {
 		$this->path = '';
 	}
 
-	// ========================================================================
-	// Streaming
-	// ========================================================================
+	/*************
+	 * Streaming *
+	 *************/
 
 	/**
 	 * @see FileInterface::open()
@@ -449,9 +449,9 @@ class File implements FileInterface {
 		}
 	}
 
-	// ========================================================================
-	// Permissions
-	// ========================================================================
+	/***************
+	 * Permissions *
+	 ***************/
 
 	/**
 	 * @see FileInterface::setPermissions()
@@ -534,9 +534,9 @@ class File implements FileInterface {
 		return @is_executable($this->getPath());
 	}
 
-	// ========================================================================
-	// Ownership
-	// ========================================================================
+	/*************
+	 * Ownership *
+	 *************/
 
 	/**
 	 * @see FileInterface::setOwner()
@@ -592,9 +592,9 @@ class File implements FileInterface {
 		return $groupInfo['name'] ?? (string)$group;
 	}
 
-	// ========================================================================
-	// Internal Helpers
-	// ========================================================================
+	/********************
+	 * Internal Helpers *
+	 ********************/
 
 	/**
 	 * Parse permission string to octal mode

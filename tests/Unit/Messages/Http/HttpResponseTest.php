@@ -28,9 +28,9 @@ class HttpResponseTest extends TestCase {
 
 	use PHPMock;
 
-	// ========================================================================
-	// Constructor Tests (Consolidated)
-	// ========================================================================
+	/************************************
+	 * Constructor Tests (Consolidated) *
+	 ************************************/
 
 	/**
 	 * @dataProvider constructorProvider
@@ -82,9 +82,9 @@ class HttpResponseTest extends TestCase {
 		];
 	}
 
-	// ========================================================================
-	// Protocol Management Tests
-	// ========================================================================
+	/*****************************
+	 * Protocol Management Tests *
+	 *****************************/
 
 	public function testDefaultProtocol(): void {
 		$response = new HttpResponse();
@@ -107,9 +107,9 @@ class HttpResponseTest extends TestCase {
 		$this->assertSame('HTTP/2', $response->getProtocol());
 	}
 
-	// ========================================================================
-	// Header Management Tests - Collection Access
-	// ========================================================================
+	/***********************************************
+	 * Header Management Tests - Collection Access *
+	 ***********************************************/
 
 	public function testHeadersReturnsCollection(): void {
 		$response = new HttpResponse();
@@ -160,9 +160,9 @@ class HttpResponseTest extends TestCase {
 		$this->assertNull($headers->get('content-type'));
 	}
 
-	// ========================================================================
-	// Convenience Header Methods
-	// ========================================================================
+	/******************************
+	 * Convenience Header Methods *
+	 ******************************/
 
 	/**
 	 * @dataProvider contentTypeProvider
@@ -210,9 +210,9 @@ class HttpResponseTest extends TestCase {
 		$this->assertSame('0', $response->headers()->get('Expires'));
 	}
 
-	// ========================================================================
-	// Status Code & Messages Tests (Consolidated)
-	// ========================================================================
+	/***********************************************
+	 * Status Code & Messages Tests (Consolidated) *
+	 ***********************************************/
 
 	/**
 	 * @dataProvider statusMessageProvider
@@ -251,9 +251,9 @@ class HttpResponseTest extends TestCase {
 		];
 	}
 
-	// ========================================================================
-	// Factory Methods Tests (Consolidated)
-	// ========================================================================
+	/****************************************
+	 * Factory Methods Tests (Consolidated) *
+	 ****************************************/
 
 	/**
 	 * @dataProvider factoryMethodProvider
@@ -291,9 +291,9 @@ class HttpResponseTest extends TestCase {
 		$this->assertSame(204, $response->getCode());
 	}
 
-	// ========================================================================
-	// Fluent Interface Tests (Consolidated)
-	// ========================================================================
+	/*****************************************
+	 * Fluent Interface Tests (Consolidated) *
+	 *****************************************/
 
 	public function testFluentInterfaceChaining(): void {
 		$response = (new HttpResponse())
@@ -328,9 +328,9 @@ class HttpResponseTest extends TestCase {
 		$this->assertSame('HTTP/2', $response->getProtocol());
 	}
 
-	// ========================================================================
-	// Send Tests
-	// ========================================================================
+	/**************
+	 * Send Tests *
+	 **************/
 
 	public function testSendOutputsContent(): void {
 		$response = new HttpResponse('Hello World');
@@ -345,9 +345,9 @@ class HttpResponseTest extends TestCase {
 		$response->send();
 	}
 
-	// ========================================================================
-	// Edge Cases
-	// ========================================================================
+	/**************
+	 * Edge Cases *
+	 **************/
 
 	public function testEmptyContentHandling(): void {
 		$response = new HttpResponse('');
@@ -378,9 +378,9 @@ class HttpResponseTest extends TestCase {
 		$this->assertSame('c', $headers->get('X-Third'));
 	}
 
-	// ========================================================================
-	// Validation Tests
-	// ========================================================================
+	/********************
+	 * Validation Tests *
+	 ********************/
 
 	public function testValidateThrowsForNonStringContent(): void {
 		$this->expectException(\InvalidArgumentException::class);
@@ -407,9 +407,9 @@ class HttpResponseTest extends TestCase {
 		$this->assertSame($stringable, $response->getContent());
 	}
 
-	// ========================================================================
-	// Header Sending Tests (with Mocks)
-	// ========================================================================
+	/*************************************
+	 * Header Sending Tests (with Mocks) *
+	 *************************************/
 
 	/**
 	 * @runInSeparateProcess

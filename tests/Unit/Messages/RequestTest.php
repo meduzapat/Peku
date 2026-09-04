@@ -16,7 +16,8 @@ namespace Peku\Tests\Unit\Messages;
 use PHPUnit\Framework\TestCase;
 use Peku\Messages\{Request, RequestType};
 use Peku\Abstractions\Collection;
-use Peku\Helpers\Http\Extractors\{Extractable, Extractor};
+use Peku\Helpers\Http\Extractors\Extractable;
+use Peku\Tests\Fixtures\Mocks\MockExtractor;
 
 /**
  * Unit tests for Request abstract class
@@ -36,9 +37,9 @@ class RequestTest extends TestCase {
 		$this->request = new TestRequest();
 	}
 
-	// ========================================================================
-	// Constructor & Extract Tests
-	// ========================================================================
+	/*******************************
+	 * Constructor & Extract Tests *
+	 *******************************/
 
 	/**
 	 * Verify extract() is called exactly once during construction
@@ -58,9 +59,9 @@ class RequestTest extends TestCase {
 		$this->assertSame(TestRequest::TEST_DATA, $this->request->values()->all());
 	}
 
-	// ========================================================================
-	// wants() Tests
-	// ========================================================================
+	/*****************
+	 * wants() Tests *
+	 *****************/
 
 	public function testWantsReturnsFormat(): void {
 		$this->assertSame('html', $this->request->wants());
@@ -71,9 +72,9 @@ class RequestTest extends TestCase {
 		$this->assertSame('json', $this->request->wants());
 	}
 
-	// ========================================================================
-	// values() Accessor Tests
-	// ========================================================================
+	/***************************
+	 * values() Accessor Tests *
+	 ***************************/
 
 	/**
 	 * Verify values() returns Collection with proper data
@@ -90,9 +91,9 @@ class RequestTest extends TestCase {
 		$this->assertFalse($values->has('nonexistent'));
 	}
 
-	// ========================================================================
-	// Instance Independence Tests
-	// ========================================================================
+	/*******************************
+	 * Instance Independence Tests *
+	 *******************************/
 
 	/**
 	 * Verify multiple Request instances operate independently
@@ -119,11 +120,7 @@ class EmptyRequest extends Request {
 	}
 
 	protected function createExtractor(): Extractable {
-		return new class extends Extractor {
-			protected function initialize(): void {
-				// No-op for testing
-			}
-		};
+		return new MockExtractor();
 	}
 }
 
@@ -157,11 +154,6 @@ class TestRequest extends Request {
 	}
 
 	protected function createExtractor(): Extractable {
-		// Return a mock or simple implementation
-		return new class extends Extractor {
-			protected function initialize(): void {
-				// No-op for testing
-			}
-		};
+		return new MockExtractor();
 	}
 }

@@ -16,10 +16,11 @@ namespace Peku\Tests\Unit\Messages\Http;
 use PHPUnit\Framework\TestCase;
 use Peku\Messages\Http\{HttpRequest, AllowedHost, TrustedHosts};
 use Peku\Messages\RequestType;
-use Peku\Helpers\Http\Extractors\{Extractor, Normal};
+use Peku\Helpers\Http\Extractors\Normal;
 use Peku\Helpers\Http\UploadedFile;
 use Peku\Abstractions\{Collection, MutableCollection};
 use Peku\Validation\UntrustedRequestException;
+use Peku\Tests\Fixtures\Mocks\MockExtractor;
 
 /**
  * Unit tests for HttpRequest class
@@ -42,33 +43,9 @@ class HttpRequestTest extends TestCase {
 		HttpRequest::trustProxies(false);
 	}
 
-	// ========================================================================
-	// Test Helpers
-	// ========================================================================
-
-	/**
-	 * Create mock extractor for controlling query/data/files/server
-	 */
-	private function createMockExtractor(
-		array $query  = [],
-		array $data   = [],
-		array $files  = [],
-		array $server = []
-	): Extractor {
-		return new class($query, $data, $files, $server) extends Extractor {
-			public function __construct(array $query, array $data, array $files, array $server) {
-				// Don't call parent - we're manually setting protected properties
-				$this->parameters = $query;
-				$this->values     = $data;
-				$this->files      = $files;
-				$this->server     = $server;
-			}
-
-			protected function initialize(): void {
-				// Already initialized in constructor
-			}
-		};
-	}
+	/****************
+	 * Test Helpers *
+	 ****************/
 
 	/**
 	 * Build a request with a permissive allowedHost rule
@@ -93,9 +70,9 @@ class HttpRequestTest extends TestCase {
 		$this->assertInstanceOf(Collection::class, $request->server());
 	}
 
-	// ========================================================================
-	// Request Type Detection
-	// ========================================================================
+	/**************************
+	 * Request Type Detection *
+	 **************************/
 
 	public function testDetectsGetRequest(): void {
 		$_SERVER['REQUEST_METHOD'] = 'GET';
@@ -151,9 +128,9 @@ class HttpRequestTest extends TestCase {
 		$this->assertSame('POST', $request->getMethod());
 	}
 
-	// ========================================================================
-	// Protocol Detection
-	// ========================================================================
+	/**********************
+	 * Protocol Detection *
+	 **********************/
 
 	public function testDetectsHttpsFromServerHttps(): void {
 		$_SERVER['HTTPS'] = 'on';
@@ -195,9 +172,9 @@ class HttpRequestTest extends TestCase {
 		$this->assertSame('http', $request->getScheme());
 	}
 
-	// ========================================================================
-	// Remote IP Detection
-	// ========================================================================
+	/***********************
+	 * Remote IP Detection *
+	 ***********************/
 
 	public function testDetectsIpFromCloudflareWhenTrusted(): void {
 		HttpRequest::trustProxies(true);
@@ -246,9 +223,9 @@ class HttpRequestTest extends TestCase {
 		$this->assertSame('', $request->getRemoteIp());
 	}
 
-	// ========================================================================
-	// URL/URI/Path Distinction
-	// ========================================================================
+	/****************************
+	 * URL/URI/Path Distinction *
+	 ****************************/
 
 	public function testGetUrlExcludesQueryString(): void {
 		$_SERVER['HTTP_HOST'] = 'example.com';
@@ -293,9 +270,9 @@ class HttpRequestTest extends TestCase {
 		$this->assertSame('', $request->getReferer());
 	}
 
-	// ========================================================================
-	// Header Access
-	// ========================================================================
+	/*****************
+	 * Header Access *
+	 *****************/
 
 	public function testExtractsHttpHeaders(): void {
 		$_SERVER['HTTP_ACCEPT'] = 'application/json';
@@ -343,9 +320,9 @@ class HttpRequestTest extends TestCase {
 		$this->assertSame('1024', $headers['Content-Length']);
 	}
 
-	// ========================================================================
-	// Content Negotiation - accepts() Tests
-	// ========================================================================
+	/*****************************************
+	 * Content Negotiation - accepts() Tests *
+	 *****************************************/
 
 	public function testAcceptsWithNoHeader(): void {
 		unset($_SERVER['HTTP_ACCEPT']);
@@ -414,9 +391,9 @@ class HttpRequestTest extends TestCase {
 		$this->assertSame(['text/html'], $request->accepts());
 	}
 
-	// ========================================================================
-	// Protocol Detection Tests
-	// ========================================================================
+	/****************************
+	 * Protocol Detection Tests *
+	 ****************************/
 
 	public function testGetProtocolVersionFromServerProtocol(): void {
 		$_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
@@ -436,9 +413,9 @@ class HttpRequestTest extends TestCase {
 		$this->assertSame('1.1', $request->getProtocolVersion());
 	}
 
-	// ========================================================================
-	// Format Detection
-	// ========================================================================
+	/********************
+	 * Format Detection *
+	 ********************/
 
 	public function testWantsDetectsJson(): void {
 		$_SERVER['HTTP_ACCEPT'] = 'application/json';
@@ -464,9 +441,9 @@ class HttpRequestTest extends TestCase {
 		$this->assertSame('text/html', $request->wants());
 	}
 
-	// ========================================================================
-	// AJAX Detection
-	// ========================================================================
+	/******************
+	 * AJAX Detection *
+	 ******************/
 
 	public function testIsAjaxDetectsXmlHttpRequest(): void {
 		$_SERVER['HTTP_X_REQUESTED_WITH'] = 'XMLHttpRequest';
@@ -486,13 +463,13 @@ class HttpRequestTest extends TestCase {
 		$this->assertFalse($request->isAjax());
 	}
 
-	// ========================================================================
-	// Query/Data Extraction via Mock Extractor (after Normal tests)
-	// ========================================================================
+	/*****************************************************************
+	 * Query/Data Extraction via Mock Extractor (after Normal tests) *
+	 *****************************************************************/
 
 	public function testExtractsQueryParameters(): void {
 		$query = ['name' => 'John', 'age' => '25'];
-		$extractor = $this->createMockExtractor($query);
+		$extractor = new MockExtractor($query);
 		HttpRequest::setDefaultExtractor($extractor);
 		$request = $this->request();
 		$this->assertSame($query, $request->query()->all());
@@ -500,7 +477,7 @@ class HttpRequestTest extends TestCase {
 
 	public function testExtractsDataParameters(): void {
 		$data = ['email' => 'john@example.com', 'password' => 'secret'];
-		$extractor = $this->createMockExtractor([], $data);
+		$extractor = new MockExtractor([], $data);
 		HttpRequest::setDefaultExtractor($extractor);
 		$request = $this->request();
 		$this->assertSame($data, $request->data()->all());
@@ -509,7 +486,7 @@ class HttpRequestTest extends TestCase {
 	public function testMergesQueryAndDataWithPostOverride(): void {
 		$query = ['name' => 'John', 'age' => '25'];
 		$data  = ['name' => 'Jane', 'email' => 'jane@example.com'];
-		$extractor = $this->createMockExtractor($query, $data);
+		$extractor = new MockExtractor($query, $data);
 		HttpRequest::setDefaultExtractor($extractor);
 		$request = $this->request();
 		$this->assertSame('Jane', $request->values()->get('name'));
@@ -519,7 +496,7 @@ class HttpRequestTest extends TestCase {
 
 	public function testGetReturnsNonStringValuesDirectly(): void {
 		$query = ['tags' => ['php', 'testing'], 'settings' => ['debug' => true]];
-		$extractor = $this->createMockExtractor($query);
+		$extractor = new MockExtractor($query);
 		HttpRequest::setDefaultExtractor($extractor);
 		$request = $this->request();
 		$this->assertSame(['php', 'testing'], $request->values()->get('tags'));
@@ -528,7 +505,7 @@ class HttpRequestTest extends TestCase {
 
 	public function testGetFromQueryWithTypeCasting(): void {
 		$query = ['age' => '25', 'active' => 'true', 'score' => '98.5'];
-		$extractor = $this->createMockExtractor($query);
+		$extractor = new MockExtractor($query);
 		HttpRequest::setDefaultExtractor($extractor);
 		$request = $this->request();
 		$this->assertSame(25, $request->query()->get('age', 0));
@@ -537,7 +514,7 @@ class HttpRequestTest extends TestCase {
 	}
 
 	public function testGetFromQueryReturnsDefaultWhenMissing(): void {
-		$extractor = $this->createMockExtractor([]);
+		$extractor = new MockExtractor([]);
 		HttpRequest::setDefaultExtractor($extractor);
 		$request = $this->request();
 		$this->assertSame('default', $request->query()->get('missing', 'default'));
@@ -546,7 +523,7 @@ class HttpRequestTest extends TestCase {
 
 	public function testGetFromQueryReturnsNonStringValueDirectly(): void {
 		$query = ['tags' => ['php', 'testing'], 'count' => 42];
-		$extractor = $this->createMockExtractor($query);
+		$extractor = new MockExtractor($query);
 		HttpRequest::setDefaultExtractor($extractor);
 		$request = $this->request();
 		$this->assertSame(['php', 'testing'], $request->query()->get('tags'));
@@ -555,7 +532,7 @@ class HttpRequestTest extends TestCase {
 
 	public function testGetFromDataWithTypeCasting(): void {
 		$data = ['quantity' => '10', 'verified' => 'false', 'price' => '19.99'];
-		$extractor = $this->createMockExtractor([], $data);
+		$extractor = new MockExtractor([], $data);
 		HttpRequest::setDefaultExtractor($extractor);
 		$request = $this->request();
 		$this->assertSame(10, $request->data()->get('quantity', 0));
@@ -564,7 +541,7 @@ class HttpRequestTest extends TestCase {
 	}
 
 	public function testGetFromDataReturnsDefaultWhenMissing(): void {
-		$extractor = $this->createMockExtractor();
+		$extractor = new MockExtractor();
 		HttpRequest::setDefaultExtractor($extractor);
 		$request = $this->request();
 		$this->assertSame(999, $request->data()->get('missing', 999));
@@ -573,7 +550,7 @@ class HttpRequestTest extends TestCase {
 
 	public function testGetFromDataReturnsNonStringValueDirectly(): void {
 		$data = ['items' => ['item1', 'item2'], 'total' => 100];
-		$extractor = $this->createMockExtractor([], $data);
+		$extractor = new MockExtractor([], $data);
 		HttpRequest::setDefaultExtractor($extractor);
 		$request = $this->request();
 		$this->assertSame(['item1', 'item2'], $request->data()->get('items'));
@@ -582,7 +559,7 @@ class HttpRequestTest extends TestCase {
 
 	public function testHasQueryChecksExistence(): void {
 		$query = ['name' => 'John'];
-		$extractor = $this->createMockExtractor($query);
+		$extractor = new MockExtractor($query);
 		HttpRequest::setDefaultExtractor($extractor);
 		$request = $this->request();
 		$this->assertTrue($request->query()->has('name'));
@@ -591,21 +568,21 @@ class HttpRequestTest extends TestCase {
 
 	public function testHasDataChecksExistence(): void {
 		$data = ['email' => 'john@example.com'];
-		$extractor = $this->createMockExtractor([], $data);
+		$extractor = new MockExtractor([], $data);
 		HttpRequest::setDefaultExtractor($extractor);
 		$request = $this->request();
 		$this->assertTrue($request->data()->has('email'));
 		$this->assertFalse($request->data()->has('missing'));
 	}
 
-	// ========================================================================
-	// File Handling (Mock Extractor)
-	// ========================================================================
+	/**********************************
+	 * File Handling (Mock Extractor) *
+	 **********************************/
 
 	public function testGetFilesReturnsAllFiles(): void {
 		$mockFile = $this->createMock(UploadedFile::class);
 		$files = ['avatar' => $mockFile];
-		$extractor = $this->createMockExtractor([], [], $files);
+		$extractor = new MockExtractor([], [], $files);
 		HttpRequest::setDefaultExtractor($extractor);
 		$request = $this->request();
 		$this->assertSame($files, $request->files());
@@ -618,7 +595,7 @@ class HttpRequestTest extends TestCase {
 			'avatar' => $mockFile1,
 			'docs' => [$mockFile2],
 		];
-		$extractor = $this->createMockExtractor([], [], $files);
+		$extractor = new MockExtractor([], [], $files);
 		HttpRequest::setDefaultExtractor($extractor);
 		$request = $this->request();
 		$result = $request->files();
@@ -627,9 +604,9 @@ class HttpRequestTest extends TestCase {
 		$this->assertSame($mockFile2, $result['docs'][0]);
 	}
 
-	// ========================================================================
-	// Rule Enforcement (allowedHost)
-	// ========================================================================
+	/**********************************
+	 * Rule Enforcement (allowedHost) *
+	 **********************************/
 
 	public function testConstructionThrowsWhenNoRulesConfigured(): void {
 		// Normal::initialize() snapshots $_SERVER at construction, so it must

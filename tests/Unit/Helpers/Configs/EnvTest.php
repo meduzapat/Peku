@@ -39,9 +39,9 @@ class EnvTest extends TestCase {
 		$this->envVarsToClean[] = $name;
 	}
 
-	// ========================================================================
-	// Basic Functionality
-	// ========================================================================
+	/***********************
+	 * Basic Functionality *
+	 ***********************/
 
 	public function testReadsEnvironmentVariablesWithoutPrefix(): void {
 		$this->setEnv('DATABASE_HOST', 'localhost');
@@ -83,9 +83,9 @@ class EnvTest extends TestCase {
 		$this->assertSame(30.5, $config->get('app', 'timeout'));
 	}
 
-	// ========================================================================
-	// Default Value Handling
-	// ========================================================================
+	/**************************
+	 * Default Value Handling *
+	 **************************/
 
 	public function testUsesDefaultWhenEnvNotSet(): void {
 		$config = new Env([
@@ -123,9 +123,9 @@ class EnvTest extends TestCase {
 		$this->assertSame(3306,         $config->get('database', 'port'));
 	}
 
-	// ========================================================================
-	// Required Environment Variables (No Default)
-	// ========================================================================
+	/***********************************************
+	 * Required Environment Variables (No Default) *
+	 ***********************************************/
 
 	public function testRequiredEnvVariableExists(): void {
 		$this->setEnv('DATABASE_HOST', 'localhost');
@@ -181,9 +181,9 @@ class EnvTest extends TestCase {
 		]);
 	}
 
-	// ========================================================================
-	// Multiple Sections
-	// ========================================================================
+	/*********************
+	 * Multiple Sections *
+	 *********************/
 
 	public function testHandlesMultipleSections(): void {
 		$this->setEnv('DATABASE_HOST', 'localhost');
@@ -211,9 +211,9 @@ class EnvTest extends TestCase {
 		$this->assertSame('app1', $config->get('app',      'name'));
 	}
 
-	// ========================================================================
-	// Invalid Configuration
-	// ========================================================================
+	/*************************
+	 * Invalid Configuration *
+	 *************************/
 
 	public function testThrowsExceptionWhenSectionIsNotArray(): void {
 		$this->expectException(ConfigException::class);
@@ -233,9 +233,9 @@ class EnvTest extends TestCase {
 		]);
 	}
 
-	// ========================================================================
-	// Edge Cases
-	// ========================================================================
+	/**************
+	 * Edge Cases *
+	 **************/
 
 	public function testHandlesEmptySection(): void {
 		$config = new Env([
@@ -255,9 +255,9 @@ class EnvTest extends TestCase {
 		$this->assertSame('default', $config->get('app', 'name'));
 	}
 
-	// ========================================================================
-	// Integration with Base Config Methods
-	// ========================================================================
+	/****************************************
+	 * Integration with Base Config Methods *
+	 ****************************************/
 
 	public function testGetSectionReturnsCompleteData(): void {
 		$this->setEnv('DATABASE_HOST', 'localhost');

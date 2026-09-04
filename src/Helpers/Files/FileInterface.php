@@ -18,9 +18,9 @@ namespace Peku\Helpers\Files;
  */
 interface FileInterface {
 
-	// ========================================================================
-	// Identity & Validation
-	// ========================================================================
+	/*************************
+	 * Identity & Validation *
+	 *************************/
 
 	/**
 	 * Get file path
@@ -33,9 +33,9 @@ interface FileInterface {
 	 */
 	public function isValid(): bool;
 
-	// ========================================================================
-	// Read Operations
-	// ========================================================================
+	/*******************
+	 * Read Operations *
+	 *******************/
 
 	/**
 	 * Get file name (basename)
@@ -74,9 +74,9 @@ interface FileInterface {
 	 */
 	public function append(string $contents): void;
 
-	// ========================================================================
-	// File Metadata
-	// ========================================================================
+	/*****************
+	 * File Metadata *
+	 *****************/
 
 	/**
 	 * Get file modification time
@@ -107,9 +107,9 @@ interface FileInterface {
 	 */
 	public function touch(?int $mtime = null, ?int $atime = null): void;
 
-	// ========================================================================
-	// File Operations
-	// ========================================================================
+	/*******************
+	 * File Operations *
+	 *******************/
 
 	/**
 	 * Copy file to new location
@@ -132,9 +132,9 @@ interface FileInterface {
 	 */
 	public function delete(): void;
 
-	// ========================================================================
-	// Streaming
-	// ========================================================================
+	/*************
+	 * Streaming *
+	 *************/
 
 	/**
 	 * Open file for streaming
@@ -159,9 +159,9 @@ interface FileInterface {
 	 */
 	public function copyToStream($destination): void;
 
-	// ========================================================================
-	// Permissions & Ownership
-	// ========================================================================
+	/***************************
+	 * Permissions & Ownership *
+	 ***************************/
 
 	/**
 	 * Set file permissions (octal mode, preset, or string format)

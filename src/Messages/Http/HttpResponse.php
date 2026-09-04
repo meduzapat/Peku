@@ -129,9 +129,9 @@ class HttpResponse extends Response {
 		return StatusCodes::getStatusMessage($this->code);
 	}
 
-	// ========================================================================
-	// Convenience Response Methods
-	// ========================================================================
+	/********************************
+	 * Convenience Response Methods *
+	 ********************************/
 
 	/**
 	 * Create success response (200 OK)

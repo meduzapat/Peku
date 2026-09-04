@@ -35,9 +35,9 @@ class FileTest extends TestCase {
 		}
 	}
 
-	// ========================================================================
-	// Basic Logging Tests
-	// ========================================================================
+	/***********************
+	 * Basic Logging Tests *
+	 ***********************/
 
 	public function testExistingWritableFile(): void {
 		touch($this->tempFile);
@@ -87,9 +87,9 @@ class FileTest extends TestCase {
 		@rmdir($dir);
 	}
 
-	// ========================================================================
-	// Log Level Tests
-	// ========================================================================
+	/*******************
+	 * Log Level Tests *
+	 *******************/
 
 	/**
 	 * @dataProvider logLevelProvider
@@ -112,9 +112,9 @@ class FileTest extends TestCase {
 		];
 	}
 
-	// ========================================================================
-	// Timestamp Tests
-	// ========================================================================
+	/*******************
+	 * Timestamp Tests *
+	 *******************/
 
 	public function testIncludesTimestamp(): void {
 		$logger = new File($this->tempFile);
@@ -125,9 +125,9 @@ class FileTest extends TestCase {
 		$this->assertMatchesRegularExpression('/\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\]/', $contents);
 	}
 
-	// ========================================================================
-	// Error Handling Tests
-	// ========================================================================
+	/************************
+	 * Error Handling Tests *
+	 ************************/
 
 	public function testThrowsExceptionForNonExistentDirectory(): void {
 		$this->expectException(RuntimeException::class);

@@ -56,9 +56,9 @@ class MessageFactoryTest extends TestCase {
 		};
 	}
 
-	// ========================================================================
-	// createRequest() Tests
-	// ========================================================================
+	/*************************
+	 * createRequest() Tests *
+	 *************************/
 
 	public function testCreateRequestBuildsHttpRequestOutsideCli(): void {
 		$this->getFunctionMock('Peku\\Messages', 'php_sapi_name')
@@ -72,9 +72,9 @@ class MessageFactoryTest extends TestCase {
 		$this->assertInstanceOf(HttpRequest::class, MessageFactory::createRequest());
 	}
 
-	// ========================================================================
-	// createResponse() Tests
-	// ========================================================================
+	/**************************
+	 * createResponse() Tests *
+	 **************************/
 
 	public function testCreateResponseReturnsConfiguredResponse(): void {
 		$response = MessageFactory::createResponse($this->request('text/html'), 'body', 201);
@@ -112,9 +112,9 @@ class MessageFactoryTest extends TestCase {
 		);
 	}
 
-	// ========================================================================
-	// Mapping Tests
-	// ========================================================================
+	/*****************
+	 * Mapping Tests *
+	 *****************/
 
 	public function testGetResponseClassPrefersCustomOverDefault(): void {
 		$this->assertSame(HttpResponse::class, MessageFactory::getResponseClass('text/html'));

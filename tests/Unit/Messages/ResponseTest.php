@@ -28,9 +28,9 @@ class ResponseTest extends TestCase {
 		$this->response = new TestResponse();
 	}
 
-	// ========================================================================
-	// Constructor Tests
-	// ========================================================================
+	/*********************
+	 * Constructor Tests *
+	 *********************/
 
 	public function testConstructorWithDefaults(): void {
 		$response = new TestResponse();
@@ -55,9 +55,9 @@ class ResponseTest extends TestCase {
 		$this->assertSame('Second', $response->getContent());
 	}
 
-	// ========================================================================
-	// getCodeMessage() Tests
-	// ========================================================================
+	/**************************
+	 * getCodeMessage() Tests *
+	 **************************/
 
 	public function testGetCodeMessageReturnsImplementationMessage(): void {
 		$response = new TestResponse('content', 404);
@@ -74,9 +74,9 @@ class ResponseTest extends TestCase {
 		$this->assertSame('Code: 500', $response2->getCodeMessage());
 	}
 
-	// ========================================================================
-	// Method Chaining Tests (Fluent Interface)
-	// ========================================================================
+	/********************************************
+	 * Method Chaining Tests (Fluent Interface) *
+	 ********************************************/
 
 	public function testFluentInterfaceSetContent(): void {
 		$result = $this->response->setContent('test');
@@ -120,9 +120,9 @@ class ResponseTest extends TestCase {
 		$this->assertSame(201, $response->getCode());
 	}
 
-	// ========================================================================
-	// send() Abstract Method Tests
-	// ========================================================================
+	/********************************
+	 * send() Abstract Method Tests *
+	 ********************************/
 
 	public function testSendCallsImplementation(): void {
 		$this->response->setContent('Test output');
@@ -144,9 +144,9 @@ class ResponseTest extends TestCase {
 		$this->assertSame('', $this->response->sentContent);
 	}
 
-	// ========================================================================
-	// Integration Tests
-	// ========================================================================
+	/*********************
+	 * Integration Tests *
+	 *********************/
 
 	public function testCompleteWorkflow(): void {
 		$response = new TestResponse('Initial', 200);
@@ -183,9 +183,9 @@ class ResponseTest extends TestCase {
 		$this->assertSame('Content 2', $response2->getContent());
 	}
 
-	// ========================================================================
-	// Edge Cases
-	// ========================================================================
+	/**************
+	 * Edge Cases *
+	 **************/
 
 	public function testZeroCode(): void {
 		$response = new TestResponse('', 0);

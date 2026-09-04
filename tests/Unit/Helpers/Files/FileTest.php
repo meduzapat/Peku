@@ -48,9 +48,9 @@ class FileTest extends TestCase {
 		return $path;
 	}
 
-	// ========================================================================
-	// Factory & Registry Tests
-	// ========================================================================
+	/****************************
+	 * Factory & Registry Tests *
+	 ****************************/
 
 	public function testManageReturnsFileInstance(): void {
 		$path = $this->createTempFile();
@@ -93,9 +93,9 @@ class FileTest extends TestCase {
 		$this->assertFalse(File::isManaged('invalidpath'));
 	}
 
-	// ========================================================================
-	// Read Operations Tests
-	// ========================================================================
+	/*************************
+	 * Read Operations Tests *
+	 *************************/
 
 	public function testGetPath(): void {
 		$path = $this->createTempFile();
@@ -142,9 +142,9 @@ class FileTest extends TestCase {
 		$this->assertSame($contents, $file->getContents());
 	}
 
-	// ========================================================================
-	// Validation Tests
-	// ========================================================================
+	/********************
+	 * Validation Tests *
+	 ********************/
 
 	public function testIsValidReturnsTrueForExistingFile(): void {
 		$path = $this->createTempFile();
@@ -171,9 +171,9 @@ class FileTest extends TestCase {
 		$this->assertFalse($file->isValid());
 	}
 
-	// ========================================================================
-	// Copy Tests
-	// ========================================================================
+	/**************
+	 * Copy Tests *
+	 **************/
 
 	public function testCopyCreatesNewFile(): void {
 		$path = $this->createTempFile('original.txt', 'original content');
@@ -203,9 +203,9 @@ class FileTest extends TestCase {
 		$this->assertSame('original content', $file->getContents());
 	}
 
-	// ========================================================================
-	// Move Tests
-	// ========================================================================
+	/**************
+	 * Move Tests *
+	 **************/
 
 	public function testMoveUpdatesPath(): void {
 		$oldPath = $this->createTempFile('old.txt');
@@ -271,9 +271,9 @@ class FileTest extends TestCase {
 		$file->move($dest);
 	}
 
-	// ========================================================================
-	// Delete Tests
-	// ========================================================================
+	/****************
+	 * Delete Tests *
+	 ****************/
 
 	public function testDeleteRemovesFile(): void {
 		$path = $this->createTempFile();
@@ -324,9 +324,9 @@ class FileTest extends TestCase {
 		$file->getSize();
 	}
 
-	// ========================================================================
-	// Delete/Recreate Tests
-	// ========================================================================
+	/*************************
+	 * Delete/Recreate Tests *
+	 *************************/
 
 	public function testDeleteAndRecreateProduceDifferentInstances(): void {
 		$path = $this->tempDir . '/file.txt';
@@ -345,9 +345,9 @@ class FileTest extends TestCase {
 		$this->assertSame('second', $file2->getContents());
 	}
 
-	// ========================================================================
-	// External Deletion Tests
-	// ========================================================================
+	/***************************
+	 * External Deletion Tests *
+	 ***************************/
 
 	public function testInvalidateIfGoneOnRead(): void {
 		$path = $this->createTempFile();
@@ -378,9 +378,9 @@ class FileTest extends TestCase {
 		$this->assertFalse($file->isValid());
 	}
 
-	// ========================================================================
-	// Streaming Tests
-	// ========================================================================
+	/*******************
+	 * Streaming Tests *
+	 *******************/
 
 	public function testOpen(): void {
 		$path = $this->createTempFile('test.txt', 'content');
@@ -442,9 +442,9 @@ class FileTest extends TestCase {
 		$file->copyToStream($dest);
 	}
 
-	// ========================================================================
-	// Permissions Tests
-	// ========================================================================
+	/*********************
+	 * Permissions Tests *
+	 *********************/
 
 	public function testSetAndGetPermissions(): void {
 		$path = $this->createTempFile();
@@ -580,9 +580,9 @@ class FileTest extends TestCase {
 		$file->setPermissions(0755);
 	}
 
-	// ========================================================================
-	// File Utility Tests (create, write, append)
-	// ========================================================================
+	/**********************************************
+	 * File Utility Tests (create, write, append) *
+	 **********************************************/
 
 	public function testFileCreate(): void {
 		$path = $this->tempDir . '/new.txt';
@@ -632,9 +632,9 @@ class FileTest extends TestCase {
 		$this->assertSame('first second', $file->getContents());
 	}
 
-	// ========================================================================
-	// Metadata Tests
-	// ========================================================================
+	/******************
+	 * Metadata Tests *
+	 ******************/
 
 	public function testGetMTime(): void {
 		$path = $this->createTempFile();
@@ -726,9 +726,9 @@ class FileTest extends TestCase {
 		$this->assertSame($customTime, $file->getATime());
 	}
 
-	// ========================================================================
-	// Ownership Tests (may require privileges)
-	// ========================================================================
+	/********************************************
+	 * Ownership Tests (may require privileges) *
+	 ********************************************/
 
 	public function testGetOwner(): void {
 		$path = $this->createTempFile();
@@ -802,9 +802,9 @@ class FileTest extends TestCase {
 		$file->setGroup('root');
 	}
 
-	// ========================================================================
-	// Permission Edge Cases
-	// ========================================================================
+	/*************************
+	 * Permission Edge Cases *
+	 *************************/
 
 	public function testCreateInNonWritableDirectory(): void {
 		$dir = $this->tempDir . '/readonly';

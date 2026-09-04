@@ -24,9 +24,9 @@ use Peku\Abstractions\MutableCollection;
  */
 class MutableCollectionTest extends TestCase {
 
-	// ========================================================================
-	// set() Tests
-	// ========================================================================
+	/***************
+	 * set() Tests *
+	 ***************/
 
 	public function testSetAddsNewKey(): void {
 		$collection = new MutableCollection();
@@ -67,9 +67,9 @@ class MutableCollectionTest extends TestCase {
 		$this->assertSame($collection, $result);
 	}
 
-	// ========================================================================
-	// remove() Tests
-	// ========================================================================
+	/******************
+	 * remove() Tests *
+	 ******************/
 
 	public function testRemoveDeletesExistingKey(): void {
 		$collection = new MutableCollection(['name' => 'John', 'age' => 30]);
@@ -99,9 +99,9 @@ class MutableCollectionTest extends TestCase {
 		$this->assertSame($collection, $result);
 	}
 
-	// ========================================================================
-	// clear() Tests
-	// ========================================================================
+	/*****************
+	 * clear() Tests *
+	 *****************/
 
 	public function testClearRemovesAllItems(): void {
 		$collection = new MutableCollection(['name' => 'John', 'age' => 30, 'email' => 'john@example.com']);
@@ -124,9 +124,9 @@ class MutableCollectionTest extends TestCase {
 		$this->assertSame($collection, $result);
 	}
 
-	// ========================================================================
-	// merge() Tests
-	// ========================================================================
+	/*****************
+	 * merge() Tests *
+	 *****************/
 
 	public function testMergeAddsNewKeys(): void {
 		$collection = new MutableCollection(['name' => 'John']);
@@ -195,9 +195,9 @@ class MutableCollectionTest extends TestCase {
 		], $collection->all());
 	}
 
-	// ========================================================================
-	// pull() Tests
-	// ========================================================================
+	/****************
+	 * pull() Tests *
+	 ****************/
 
 	public function testPullReturnsAndRemovesValue(): void {
 		$collection = new MutableCollection(['name' => 'John', 'age' => 30]);
@@ -253,9 +253,9 @@ class MutableCollectionTest extends TestCase {
 		$this->assertSame([], $collection->all());
 	}
 
-	// ========================================================================
-	// Method Chaining Tests
-	// ========================================================================
+	/*************************
+	 * Method Chaining Tests *
+	 *************************/
 
 	public function testAllMethodsSupportChaining(): void {
 		$collection = new MutableCollection();
@@ -292,9 +292,9 @@ class MutableCollectionTest extends TestCase {
 		], $collection->all());
 	}
 
-	// ========================================================================
-	// Edge Cases
-	// ========================================================================
+	/**************
+	 * Edge Cases *
+	 **************/
 
 	public function testMultipleSetsSameKey(): void {
 		$collection = new MutableCollection();

@@ -21,9 +21,9 @@ use Peku\Helpers\Utils\Data\Values;
  */
 class ValuesTest extends TestCase {
 
-	// ========================================================================
-	// cast() Method Tests - Array Defaults
-	// ========================================================================
+	/****************************************
+	 * cast() Method Tests - Array Defaults *
+	 ****************************************/
 
 	/**
 	 * @dataProvider arrayCastProvider
@@ -43,9 +43,9 @@ class ValuesTest extends TestCase {
 		];
 	}
 
-	// ========================================================================
-	// cast() Method Tests - Boolean Defaults
-	// ========================================================================
+	/******************************************
+	 * cast() Method Tests - Boolean Defaults *
+	 ******************************************/
 
 	/**
 	 * @dataProvider booleanStringProvider
@@ -77,9 +77,9 @@ class ValuesTest extends TestCase {
 		$this->assertSame($default, $result);
 	}
 
-	// ========================================================================
-	// cast() Method Tests - Integer Defaults
-	// ========================================================================
+	/******************************************
+	 * cast() Method Tests - Integer Defaults *
+	 ******************************************/
 
 	/**
 	 * @dataProvider integerCastProvider
@@ -99,9 +99,9 @@ class ValuesTest extends TestCase {
 		];
 	}
 
-	// ========================================================================
-	// cast() Method Tests - Float Defaults
-	// ========================================================================
+	/****************************************
+	 * cast() Method Tests - Float Defaults *
+	 ****************************************/
 
 	/**
 	 * @dataProvider floatCastProvider
@@ -121,9 +121,9 @@ class ValuesTest extends TestCase {
 		];
 	}
 
-	// ========================================================================
-	// cast() Method Tests - String Defaults
-	// ========================================================================
+	/*****************************************
+	 * cast() Method Tests - String Defaults *
+	 *****************************************/
 
 	/**
 	 * @dataProvider stringCastProvider
@@ -141,9 +141,9 @@ class ValuesTest extends TestCase {
 		];
 	}
 
-	// ========================================================================
-	// cast() Method Tests - Other Type Defaults
-	// ========================================================================
+	/*********************************************
+	 * cast() Method Tests - Other Type Defaults *
+	 *********************************************/
 
 	public function testCastWithNullDefault(): void {
 		$result = Values::cast('any value', null);
@@ -157,9 +157,9 @@ class ValuesTest extends TestCase {
 		$this->assertSame($default, $result);
 	}
 
-	// ========================================================================
-	// inferType() Method Tests - JSON Detection
-	// ========================================================================
+	/*********************************************
+	 * inferType() Method Tests - JSON Detection *
+	 *********************************************/
 
 	/**
 	 * @dataProvider jsonInferProvider
@@ -186,9 +186,9 @@ class ValuesTest extends TestCase {
 		];
 	}
 
-	// ========================================================================
-	// inferType() Method Tests - Serialized Detection
-	// ========================================================================
+	/***************************************************
+	 * inferType() Method Tests - Serialized Detection *
+	 ***************************************************/
 
 	public function testInferTypeFromSerializedArray(): void {
 		$value  = serialize(['key' => 'value', 'number' => 123]);
@@ -198,9 +198,9 @@ class ValuesTest extends TestCase {
 		$this->assertSame(['key' => 'value', 'number' => 123], $result);
 	}
 
-	// ========================================================================
-	// inferType() Method Tests - Float Detection
-	// ========================================================================
+	/**********************************************
+	 * inferType() Method Tests - Float Detection *
+	 **********************************************/
 
 	/**
 	 * @dataProvider floatInferProvider
@@ -218,9 +218,9 @@ class ValuesTest extends TestCase {
 		];
 	}
 
-	// ========================================================================
-	// inferType() Method Tests - Integer Detection
-	// ========================================================================
+	/************************************************
+	 * inferType() Method Tests - Integer Detection *
+	 ************************************************/
 
 	/**
 	 * @dataProvider integerInferProvider
@@ -238,9 +238,9 @@ class ValuesTest extends TestCase {
 		];
 	}
 
-	// ========================================================================
-	// inferType() Method Tests - Boolean Detection
-	// ========================================================================
+	/************************************************
+	 * inferType() Method Tests - Boolean Detection *
+	 ************************************************/
 
 	/**
 	 * @dataProvider booleanInferProvider
@@ -262,9 +262,9 @@ class ValuesTest extends TestCase {
 		];
 	}
 
-	// ========================================================================
-	// inferType() Method Tests - String Fallback
-	// ========================================================================
+	/**********************************************
+	 * inferType() Method Tests - String Fallback *
+	 **********************************************/
 
 	/**
 	 * @dataProvider stringInferProvider
@@ -282,9 +282,9 @@ class ValuesTest extends TestCase {
 		];
 	}
 
-	// ========================================================================
-	// inferType() Method Tests - Priority Order
-	// ========================================================================
+	/*********************************************
+	 * inferType() Method Tests - Priority Order *
+	 *********************************************/
 
 	public function testInferTypePrioritizesJsonOverOtherTypes(): void {
 		// String "123" should be detected as JSON array first
@@ -302,9 +302,9 @@ class ValuesTest extends TestCase {
 		$this->assertIsFloat($result);
 	}
 
-	// ========================================================================
-	// toArray() Method Tests - Success Cases
-	// ========================================================================
+	/******************************************
+	 * toArray() Method Tests - Success Cases *
+	 ******************************************/
 
 	public function testToArrayFromJson(): void {
 		$value  = '{"key":"value","num":42}';
@@ -337,9 +337,9 @@ class ValuesTest extends TestCase {
 		$this->assertSame([], $result);
 	}
 
-	// ========================================================================
-	// toArray() Method Tests - Fallback Cases
-	// ========================================================================
+	/*******************************************
+	 * toArray() Method Tests - Fallback Cases *
+	 *******************************************/
 
 	public function testToArrayReturnsDefaultOnInvalidJson(): void {
 		$value   = '{invalid json}';
@@ -372,9 +372,9 @@ class ValuesTest extends TestCase {
 		$this->assertSame($default, $result);
 	}
 
-	// ========================================================================
-	// toArray() Method Tests - JSON vs Serialize Priority
-	// ========================================================================
+	/*******************************************************
+	 * toArray() Method Tests - JSON vs Serialize Priority *
+	 *******************************************************/
 
 	public function testToArrayPrioritizesJsonOverSerialize(): void {
 		// Create a value that's valid JSON and would also unserialize
@@ -392,9 +392,9 @@ class ValuesTest extends TestCase {
 		$this->assertSame($original, $result);
 	}
 
-	// ========================================================================
-	// Edge Cases & Special Values
-	// ========================================================================
+	/*******************************
+	 * Edge Cases & Special Values *
+	 *******************************/
 
 	public function testCastWithNumericStringZero(): void {
 		// Test that "0" is properly handled (not treated as empty)

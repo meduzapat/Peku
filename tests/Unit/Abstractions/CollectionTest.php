@@ -23,9 +23,9 @@ use Peku\Abstractions\Collection;
  */
 class CollectionTest extends TestCase {
 
-	// ========================================================================
-	// Constructor Tests
-	// ========================================================================
+	/*********************
+	 * Constructor Tests *
+	 *********************/
 
 	public function testConstructorWithEmptyArray(): void {
 		$collection = new Collection();
@@ -41,9 +41,9 @@ class CollectionTest extends TestCase {
 		$this->assertFalse($collection->isEmpty());
 	}
 
-	// ========================================================================
-	// get() Tests - String Values
-	// ========================================================================
+	/*******************************
+	 * get() Tests - String Values *
+	 *******************************/
 
 	public function testGetReturnsStringValue(): void {
 		$collection = new Collection(['name' => 'John']);
@@ -69,9 +69,9 @@ class CollectionTest extends TestCase {
 		$this->assertSame(98.5, $collection->get('score', 0.0));
 	}
 
-	// ========================================================================
-	// get() Tests - Non-String Values (Return As-Is)
-	// ========================================================================
+	/**************************************************
+	 * get() Tests - Non-String Values (Return As-Is) *
+	 **************************************************/
 
 	public function testGetReturnsNonStringValueAsIs(): void {
 		$collection = new Collection(['count' => 123, 'active' => true, 'tags' => ['php', 'test']]);
@@ -97,9 +97,9 @@ class CollectionTest extends TestCase {
 		$this->assertNull($collection->get('nullable', 'default'));
 	}
 
-	// ========================================================================
-	// has() Tests
-	// ========================================================================
+	/***************
+	 * has() Tests *
+	 ***************/
 
 	public function testHasReturnsTrueForExistingKey(): void {
 		$collection = new Collection(['name' => 'John']);
@@ -116,9 +116,9 @@ class CollectionTest extends TestCase {
 		$this->assertTrue($collection->has('nullable'));
 	}
 
-	// ========================================================================
-	// all() Tests
-	// ========================================================================
+	/***************
+	 * all() Tests *
+	 ***************/
 
 	public function testAllReturnsAllItems(): void {
 		$items      = ['name' => 'John', 'age' => 25, 'city' => 'NYC'];
@@ -132,9 +132,9 @@ class CollectionTest extends TestCase {
 		$this->assertSame([], $collection->all());
 	}
 
-	// ========================================================================
-	// keys() Tests
-	// ========================================================================
+	/****************
+	 * keys() Tests *
+	 ****************/
 
 	public function testKeysReturnsAllKeys(): void {
 		$collection = new Collection(['name' => 'John', 'age' => 25]);
@@ -146,9 +146,9 @@ class CollectionTest extends TestCase {
 		$this->assertSame([], $collection->keys());
 	}
 
-	// ========================================================================
-	// values() Tests
-	// ========================================================================
+	/******************
+	 * values() Tests *
+	 ******************/
 
 	public function testValuesReturnsAllValuesReindexed(): void {
 		$collection = new Collection(['name' => 'John', 'age' => 25]);
@@ -165,9 +165,9 @@ class CollectionTest extends TestCase {
 		$this->assertSame(['five', 'ten', 'two'], $collection->values());
 	}
 
-	// ========================================================================
-	// isEmpty() Tests
-	// ========================================================================
+	/*******************
+	 * isEmpty() Tests *
+	 *******************/
 
 	public function testIsEmptyReturnsTrueForEmptyCollection(): void {
 		$collection = new Collection();
@@ -179,9 +179,9 @@ class CollectionTest extends TestCase {
 		$this->assertFalse($collection->isEmpty());
 	}
 
-	// ========================================================================
-	// first() Tests
-	// ========================================================================
+	/*****************
+	 * first() Tests *
+	 *****************/
 
 	public function testFirstReturnsFirstValue(): void {
 		$collection = new Collection(['name' => 'John', 'age' => 25, 'city' => 'NYC']);
@@ -203,9 +203,9 @@ class CollectionTest extends TestCase {
 		$this->assertSame('last', $collection->first());
 	}
 
-	// ========================================================================
-	// last() Tests
-	// ========================================================================
+	/****************
+	 * last() Tests *
+	 ****************/
 
 	public function testLastReturnsLastValue(): void {
 		$collection = new Collection(['name' => 'John', 'age' => 25, 'city' => 'NYC']);
@@ -227,9 +227,9 @@ class CollectionTest extends TestCase {
 		$this->assertSame('last', $collection->last());
 	}
 
-	// ========================================================================
-	// only() Tests
-	// ========================================================================
+	/****************
+	 * only() Tests *
+	 ****************/
 
 	public function testOnlyReturnsRequestedKeys(): void {
 		$collection = new Collection([
@@ -273,9 +273,9 @@ class CollectionTest extends TestCase {
 		$this->assertSame([], $result->all());
 	}
 
-	// ========================================================================
-	// except() Tests
-	// ========================================================================
+	/******************
+	 * except() Tests *
+	 ******************/
 
 	public function testExceptExcludesSpecifiedKeys(): void {
 		$collection = new Collection([
@@ -306,9 +306,9 @@ class CollectionTest extends TestCase {
 		$this->assertSame($items, $result->all());
 	}
 
-	// ========================================================================
-	// hasAny() Tests
-	// ========================================================================
+	/******************
+	 * hasAny() Tests *
+	 ******************/
 
 	public function testHasAnyReturnsTrueWhenOneKeyExists(): void {
 		$collection = new Collection(['name' => 'John', 'age' => 25]);
@@ -328,9 +328,9 @@ class CollectionTest extends TestCase {
 		$this->assertFalse($collection->hasAny([]));
 	}
 
-	// ========================================================================
-	// hasAll() Tests
-	// ========================================================================
+	/******************
+	 * hasAll() Tests *
+	 ******************/
 
 	public function testHasAllReturnsTrueWhenAllKeysExist(): void {
 		$collection = new Collection(['name' => 'John', 'age' => 25, 'city' => 'NYC']);
@@ -351,9 +351,9 @@ class CollectionTest extends TestCase {
 		$this->assertTrue($collection->hasAll([]));
 	}
 
-	// ========================================================================
-	// count() Tests (Countable Interface)
-	// ========================================================================
+	/***************************************
+	 * count() Tests (Countable Interface) *
+	 ***************************************/
 
 	public function testCountReturnsNumberOfItems(): void {
 		$collection = new Collection(['name' => 'John', 'age' => 25, 'city' => 'NYC']);
@@ -370,9 +370,9 @@ class CollectionTest extends TestCase {
 		$this->assertSame(2, count($collection));
 	}
 
-	// ========================================================================
-	// getIterator() Tests (IteratorAggregate Interface)
-	// ========================================================================
+	/*****************************************************
+	 * getIterator() Tests (IteratorAggregate Interface) *
+	 *****************************************************/
 
 	public function testGetIteratorAllowsForeach(): void {
 		$items      = ['name' => 'John', 'age' => 25];
@@ -386,9 +386,9 @@ class CollectionTest extends TestCase {
 		$this->assertSame($items, $result);
 	}
 
-	// ========================================================================
-	// Integration Tests
-	// ========================================================================
+	/*********************
+	 * Integration Tests *
+	 *********************/
 
 	public function testRealWorldHttpHeadersScenario(): void {
 		$headers = new Collection([

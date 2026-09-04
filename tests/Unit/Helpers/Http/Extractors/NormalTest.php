@@ -51,9 +51,9 @@ class NormalTest extends TestCase {
 		return $path;
 	}
 
-	// ========================================================================
-	// GET/POST Extraction Tests
-	// ========================================================================
+	/*****************************
+	 * GET/POST Extraction Tests *
+	 *****************************/
 
 	public function testExtractsGetParameters(): void {
 		$data = ['name' => 'John', 'age' => '25', 'active' => 'true'];
@@ -110,9 +110,9 @@ class NormalTest extends TestCase {
 		$this->assertSame([], $_FILES);
 	}
 
-	// ========================================================================
-	// Upload Error Handling Tests (No Mocks Needed)
-	// ========================================================================
+	/*************************************************
+	 * Upload Error Handling Tests (No Mocks Needed) *
+	 *************************************************/
 
 	public function testHandlesUploadError(): void {
 		$_FILES = [
@@ -161,9 +161,9 @@ class NormalTest extends TestCase {
 		$this->assertFalse($files['mixed'][1]->isAvailable());
 	}
 
-	// ========================================================================
-	// Edge Cases (No Mocks Needed)
-	// ========================================================================
+	/********************************
+	 * Edge Cases (No Mocks Needed) *
+	 ********************************/
 
 	public function testSkipsMalformedFileEntry(): void {
 		$_FILES = [
@@ -207,9 +207,9 @@ class NormalTest extends TestCase {
 		$this->assertSame('legacy.txt', $files['old_php']->getClientPath());
 	}
 
-	// ========================================================================
-	// Single File Upload Tests (Require Mocks)
-	// ========================================================================
+	/********************************************
+	 * Single File Upload Tests (Require Mocks) *
+	 ********************************************/
 
 	/**
 	 * @runInSeparateProcess
@@ -264,9 +264,9 @@ class NormalTest extends TestCase {
 		$this->assertSame('project/docs/File.pdf', $files['document']->getClientPath());
 	}
 
-	// ========================================================================
-	// Multiple File Upload Tests (Require Mocks)
-	// ========================================================================
+	/**********************************************
+	 * Multiple File Upload Tests (Require Mocks) *
+	 **********************************************/
 
 	/**
 	 * @runInSeparateProcess

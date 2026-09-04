@@ -65,9 +65,9 @@ PHP
 		parent::tearDown();
 	}
 
-	// ========================================================================
-	// Success Cases
-	// ========================================================================
+	/*****************
+	 * Success Cases *
+	 *****************/
 
 	public function testLoadsValidPhpConfigFile(): void {
 		$config = new Php(['file' => $this->validConfigFile]);
@@ -86,9 +86,9 @@ PHP
 		$this->assertArrayHasKey('app', $all);
 	}
 
-	// ========================================================================
-	// Exception Cases - Missing/Invalid Parameters
-	// ========================================================================
+	/************************************************
+	 * Exception Cases - Missing/Invalid Parameters *
+	 ************************************************/
 
 	public function testThrowsExceptionWhenFileParameterMissing(): void {
 		$this->expectException(ConfigException::class);
@@ -104,9 +104,9 @@ PHP
 		new Php(['file' => null]);
 	}
 
-	// ========================================================================
-	// Exception Cases - File Not Found
-	// ========================================================================
+	/************************************
+	 * Exception Cases - File Not Found *
+	 ************************************/
 
 	public function testThrowsExceptionWhenFileNotFound(): void {
 		$this->expectException(FileException::class);
@@ -127,9 +127,9 @@ PHP
 		}
 	}
 
-	// ========================================================================
-	// Exception Cases - Invalid Return Type
-	// ========================================================================
+	/*****************************************
+	 * Exception Cases - Invalid Return Type *
+	 *****************************************/
 
 	public function testThrowsExceptionWhenFileDoesNotReturnArray(): void {
 		$this->expectException(ConfigException::class);
@@ -148,9 +148,9 @@ PHP
 		}
 	}
 
-	// ========================================================================
-	// Edge Cases
-	// ========================================================================
+	/**************
+	 * Edge Cases *
+	 **************/
 
 	public function testHandlesEmptyArrayReturn(): void {
 		$emptyFile = \sys_get_temp_dir() . '/peku_test_empty.php';

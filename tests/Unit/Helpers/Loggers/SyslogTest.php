@@ -31,9 +31,9 @@ class SyslogTest extends TestCase {
 		$this->logger = new Syslog('TestApp', LOG_PID, LOG_USER);
 	}
 
-	// ========================================================================
-	// Syslog Function Calls
-	// ========================================================================
+	/*************************
+	 * Syslog Function Calls *
+	 *************************/
 
 	/**
 	 * @runInSeparateProcess
@@ -51,9 +51,9 @@ class SyslogTest extends TestCase {
 		$this->logger->logInfo('Test message');
 	}
 
-	// ========================================================================
-	// Log Level Mapping
-	// ========================================================================
+	/*********************
+	 * Log Level Mapping *
+	 *********************/
 
 	/**
 	 * @runInSeparateProcess

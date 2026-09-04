@@ -48,9 +48,9 @@ class ConfigTest extends TestCase {
 		};
 	}
 
-	// ========================================================================
-	// Constructor & Import Tests
-	// ========================================================================
+	/******************************
+	 * Constructor & Import Tests *
+	 ******************************/
 
 	public function testConstructorCallsImport(): void {
 		$sourceInfo = ['filename' => 'test.ini'];
@@ -77,9 +77,9 @@ class ConfigTest extends TestCase {
 		$this->assertSame(['filename' => 'test.ini'], $passedInfo);
 	}
 
-	// ========================================================================
-	// get() Method Tests
-	// ========================================================================
+	/**********************
+	 * get() Method Tests *
+	 **********************/
 
 	public function testGetReturnsExistingValue(): void {
 		$this->assertSame('localhost', $this->config->get('database', 'host'));
@@ -106,9 +106,9 @@ class ConfigTest extends TestCase {
 		$this->assertIsBool($this->config->get('database',   'enabled'));
 	}
 
-	// ========================================================================
-	// getSection() Method Tests
-	// ========================================================================
+	/*****************************
+	 * getSection() Method Tests *
+	 *****************************/
 
 	public function testGetSectionReturnsCompleteSection(): void {
 		$expected = self::TEST_DATA['database'];
@@ -128,9 +128,9 @@ class ConfigTest extends TestCase {
 		$this->assertSame([], $section);
 	}
 
-	// ========================================================================
-	// hasSection() Method Tests
-	// ========================================================================
+	/*****************************
+	 * hasSection() Method Tests *
+	 *****************************/
 
 	public function testHasSectionReturnsTrueWhenExists(): void {
 		$this->assertTrue($this->config->hasSection('database'));
@@ -143,9 +143,9 @@ class ConfigTest extends TestCase {
 		$this->assertFalse($this->config->hasSection('missing'));
 	}
 
-	// ========================================================================
-	// has() Method Tests
-	// ========================================================================
+	/**********************
+	 * has() Method Tests *
+	 **********************/
 
 	public function testHasReturnsTrueWhenKeyExists(): void {
 		$this->assertTrue($this->config->has('database', 'host'));
@@ -162,9 +162,9 @@ class ConfigTest extends TestCase {
 		$this->assertFalse($this->config->has('nonexistent', 'key'));
 	}
 
-	// ========================================================================
-	// getAll() Method Tests
-	// ========================================================================
+	/*************************
+	 * getAll() Method Tests *
+	 *************************/
 
 	public function testGetAllReturnsCompleteArray(): void {
 		$all = $this->config->getAll();
@@ -173,9 +173,9 @@ class ConfigTest extends TestCase {
 		$this->assertCount(3, $all);
 	}
 
-	// ========================================================================
-	// IteratorAggregate Tests
-	// ========================================================================
+	/***************************
+	 * IteratorAggregate Tests *
+	 ***************************/
 
 	public function testIterationProvidesCorrectData(): void {
 		foreach ($this->config as $section => $data) {
@@ -183,9 +183,9 @@ class ConfigTest extends TestCase {
 		}
 	}
 
-	// ========================================================================
-	// Edge Cases & Type Safety
-	// ========================================================================
+	/****************************
+	 * Edge Cases & Type Safety *
+	 ****************************/
 
 	public function testGetWithArrayDefault(): void {
 		$default = ['custom' => 'array'];
@@ -199,9 +199,9 @@ class ConfigTest extends TestCase {
 		$this->assertSame($default, $result);
 	}
 
-	// ========================================================================
-	// Import Validation Tests
-	// ========================================================================
+	/***************************
+	 * Import Validation Tests *
+	 ***************************/
 
 	public function testImportMustReturnArray(): void {
 		$this->expectException(\TypeError::class);
@@ -225,9 +225,9 @@ class ConfigTest extends TestCase {
 		$this->assertFalse($config->hasSection('anything'));
 	}
 
-	// ========================================================================
-	// Integration Tests
-	// ========================================================================
+	/*********************
+	 * Integration Tests *
+	 *********************/
 
 	public function testChainedAccess(): void {
 		$this->assertTrue($this->config->hasSection('database'));

@@ -38,9 +38,9 @@ class ErrorHandlerTest extends TestCase {
 		parent::tearDown();
 	}
 
-	// ========================================================================
-	// initialize() Tests
-	// ========================================================================
+	/**********************
+	 * initialize() Tests *
+	 **********************/
 
 	public function testInitializeWithLogger(): void {
 
@@ -62,9 +62,9 @@ class ErrorHandlerTest extends TestCase {
 		ErrorHandler::handleError(E_WARNING, 'Test warning', __FILE__, __LINE__);
 	}
 
-	// ========================================================================
-	// handleError() Tests - Error Type Mapping
-	// ========================================================================
+	/********************************************
+	 * handleError() Tests - Error Type Mapping *
+	 ********************************************/
 
 	/**
 	 * @dataProvider errorTypeProvider
@@ -116,9 +116,9 @@ class ErrorHandlerTest extends TestCase {
 		ErrorHandler::handleError(99999, 'Test message', __FILE__, __LINE__);
 	}
 
-	// ========================================================================
-	// handleError() Tests - LogLevel Mapping
-	// ========================================================================
+	/******************************************
+	 * handleError() Tests - LogLevel Mapping *
+	 ******************************************/
 
 	/**
 	 * @dataProvider errorLevelProvider
@@ -149,9 +149,9 @@ class ErrorHandlerTest extends TestCase {
 		];
 	}
 
-	// ========================================================================
-	// handleError() Tests - Message Format
-	// ========================================================================
+	/****************************************
+	 * handleError() Tests - Message Format *
+	 ****************************************/
 
 	public function testHandleErrorFormatsMessageCorrectly(): void {
 
@@ -182,9 +182,9 @@ class ErrorHandlerTest extends TestCase {
 		$this->assertTrue(ErrorHandler::handleError(E_WARNING, 'Test', __FILE__, __LINE__));
 	}
 
-	// ========================================================================
-	// handleException() Tests
-	// ========================================================================
+	/***************************
+	 * handleException() Tests *
+	 ***************************/
 
 	public function testHandleExceptionLogsWithCriticalLevel(): void {
 
@@ -218,9 +218,9 @@ class ErrorHandlerTest extends TestCase {
 		ErrorHandler::handleException($exception);
 	}
 
-	// ========================================================================
-	// handleFatal() Tests
-	// ========================================================================
+	/***********************
+	 * handleFatal() Tests *
+	 ***********************/
 
 	public function testHandleFatalDoesNothingWhenNoError(): void {
 		$this->expectNotToPerformAssertions();

@@ -37,9 +37,9 @@ class LoggerTest extends TestCase {
 		};
 	}
 
-	// ========================================================================
-	// Helper Methods Tests, formatMessage() Text, and multiple calls.
-	// ========================================================================
+	/*******************************************************************
+	 * Helper Methods Tests, formatMessage() Text, and multiple calls. *
+	 *******************************************************************/
 
 	public function testLogLevelsAndBasics(): void {
 		$this->logger->logDebug('debug message');
@@ -63,9 +63,9 @@ class LoggerTest extends TestCase {
 		$this->assertSame(LogLevel::Critical, $this->logger->lastLevel);
 	}
 
-	// ========================================================================
-	// formatMessage() Tests - Scalars
-	// ========================================================================
+	/***********************************
+	 * formatMessage() Tests - Scalars *
+	 ***********************************/
 
 	public function testFormatMessageInteger(): void {
 		$this->logger->logInfo(42);
@@ -87,9 +87,9 @@ class LoggerTest extends TestCase {
 		$this->assertSame('NULL', $this->logger->lastMessage);
 	}
 
-	// ========================================================================
-	// formatMessage() Tests - Arrays
-	// ========================================================================
+	/**********************************
+	 * formatMessage() Tests - Arrays *
+	 **********************************/
 
 	public function testFormatMessageArrayEmpty(): void {
 		$this->logger->logCritical([]);
@@ -115,9 +115,9 @@ class LoggerTest extends TestCase {
 		$this->assertSame('[JSON encoding error: Malformed UTF-8 characters, possibly incorrectly encoded]', $this->logger->lastMessage);
 	}
 
-	// ========================================================================
-	// formatMessage() Tests - Objects
-	// ========================================================================
+	/***********************************
+	 * formatMessage() Tests - Objects *
+	 ***********************************/
 
 	public function testFormatMessageStdClass(): void {
 		$this->logger->logInfo((object)['name' => 'test', 'age' => 30]);
@@ -168,9 +168,9 @@ class LoggerTest extends TestCase {
 		$this->assertSame('[]', $this->logger->lastMessage);
 	}
 
-	// ========================================================================
-	// formatMessage() Tests - Exceptions
-	// ========================================================================
+	/**************************************
+	 * formatMessage() Tests - Exceptions *
+	 **************************************/
 
 	public function testFormatMessageException(): void {
 		$exception = new \RuntimeException('Test error');
@@ -183,9 +183,9 @@ class LoggerTest extends TestCase {
 		$this->assertSame($expected, $this->logger->lastMessage);
 	}
 
-	// ========================================================================
-	// formatMessage() Tests - Others
-	// ========================================================================
+	/**********************************
+	 * formatMessage() Tests - Others *
+	 **********************************/
 
 	public function testFormatMessageResource(): void {
 		$resource = \fopen('php://memory', 'r');
