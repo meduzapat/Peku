@@ -16,6 +16,7 @@ namespace Peku\Messages\Http;
 use Peku\Messages\{Request, RequestType};
 use Peku\Helpers\Http\Extractors\{Extractable, Normal};
 use Peku\Abstractions\{Collection, MutableCollection};
+use Peku\Validation\Rules;
 
 /**
  * HTTP request implementation with metadata and context-aware data access
@@ -51,6 +52,32 @@ class HttpRequest extends Request {
 		$remoteIp = '';
 
 	/**
+	 * Rules enforced against this request during extraction
+	 */
+	protected MutableCollection $rules;
+
+	/**
+	 * Initialize with the rules to enforce during extraction
+	 *
+	 * Defaults to a fail-closed set construct explicitly to actually trust anything.
+	 * @param MutableCollection|null $rules Rule instances, keyed by name.
+	 */
+	public function __construct(?MutableCollection $rules = null) {
+		$this->rules = $rules ?? self::defaultRules();
+		parent::__construct();
+	}
+
+	/**
+	 * Fail-closed default rule set
+	 *
+	 * No TrustedHosts configured means allowedHost always fails - there is
+	 * no implicit "trust everything" fallback.
+	 */
+	protected static function defaultRules(): MutableCollection {
+		return (new MutableCollection())->set('allowedHost', new AllowedHost(null));
+	}
+
+	/**
 	 * Enable proxy header trust
 	 *
 	 * WARNING: Only enable behind trusted reverse proxy/load balancer.
@@ -62,9 +89,9 @@ class HttpRequest extends Request {
 		self::$trustProxies = $trust;
 	}
 
-	// ========================================================================
-	// Collection Accessors
-	// ========================================================================
+	/************************
+	 * Collection Accessors *
+	 ************************/
 
 	/**
 	 * Get server variables collection
@@ -111,9 +138,9 @@ class HttpRequest extends Request {
 		return $this->files;
 	}
 
-	// ========================================================================
-	// Content Negotiation
-	// ========================================================================
+	/***********************
+	 * Content Negotiation *
+	 ***********************/
 
 	/**
 	 * Get accepted MIME types sorted by preference
@@ -147,7 +174,6 @@ class HttpRequest extends Request {
 
 			// Extract quality (q parameter) - default 1.0
 			$quality = 1.0;
-			$matches = [];
 			foreach (array_slice($parts, 1) as $param) {
 				$param = trim($param);
 				if (0 === stripos($param, 'q=')) {
@@ -223,9 +249,9 @@ class HttpRequest extends Request {
 		return $accepted[0] ?? 'text/html';
 	}
 
-	// ========================================================================
-	// HTTP Metadata Access
-	// ========================================================================
+	/************************
+	 * HTTP Metadata Access *
+	 ************************/
 
 	/**
 	 * Get URI scheme (http or https)
@@ -306,9 +332,9 @@ class HttpRequest extends Request {
 		return strtolower($requested) === 'xmlhttprequest';
 	}
 
-	// ========================================================================
-	// Internal Helpers
-	// ========================================================================
+	/********************
+	 * Internal Helpers *
+	 ********************/
 
 	/**
 	 * Extract HTTP request data and metadata
@@ -336,15 +362,19 @@ class HttpRequest extends Request {
 		//    HTTP_HOST and HTTP_REFERER remain in headers collection
 		$this->headers = new Collection($this->extractHeaders($server));
 
-		// 5. Build URL (scheme + host + path, NO query string)
+		// 5. Enforce configured rules before $url below is built.
+		$context = new Collection(['headers' => $this->headers, 'server' => $server]);
+		Rules::enforce($this->rules, $context);
+
+		// 6. Build URL (scheme + host + path, NO query string)
 		$path      = parse_url($this->uri, PHP_URL_PATH) ?? '/';
 		$this->url = $this->scheme . '://' . $this->getHost() . $path;
 
-		// 6. Merge query+data for unified access via values()
+		// 7. Merge query+data for unified access via values()
 		//    POST overrides GET if same key exists
 		$this->values = new Collection([...$this->query->all(), ...$this->data->all()]);
 
-		// 7. Store cleaned server variables (extracted metadata removed)
+		// 8. Store cleaned server variables (extracted metadata removed)
 		$this->server = new Collection($server->all());
 	}
 

@@ -13,17 +13,21 @@ declare(strict_types=1);
 
 namespace Peku\Tests\Unit\Messages;
 
+use phpmock\phpunit\PHPMock;
 use PHPUnit\Framework\TestCase;
 use Peku\Abstractions\Collection;
 use Peku\Messages\MessageFactory;
 use Peku\Messages\Requestable;
 use Peku\Messages\RequestType;
+use Peku\Messages\Http\HttpRequest;
 use Peku\Messages\Http\HttpResponse;
 
 /**
  * Unit tests for MessageFactory
  */
 class MessageFactoryTest extends TestCase {
+
+	use PHPMock;
 
 	protected function tearDown(): void {
 		MessageFactory::clearMappings();
@@ -50,6 +54,22 @@ class MessageFactoryTest extends TestCase {
 				return $this->wants;
 			}
 		};
+	}
+
+	// ========================================================================
+	// createRequest() Tests
+	// ========================================================================
+
+	public function testCreateRequestBuildsHttpRequestOutsideCli(): void {
+		$this->getFunctionMock('Peku\\Messages', 'php_sapi_name')
+			->expects($this->once())
+			->willReturn('fpm-fcgi');
+
+		$_SERVER['REQUEST_METHOD'] = 'GET';
+		$_SERVER['REQUEST_URI']    = '/';
+		$_SERVER['HTTP_ACCEPT']    = 'text/html';
+
+		$this->assertInstanceOf(HttpRequest::class, MessageFactory::createRequest());
 	}
 
 	// ========================================================================
